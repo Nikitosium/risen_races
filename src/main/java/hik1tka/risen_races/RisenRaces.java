@@ -4,6 +4,7 @@ import hik1tka.risen_races.client.RisenRacesClient;
 import hik1tka.risen_races.register.ModEffect;
 import hik1tka.risen_races.register.ModEntity;
 import hik1tka.risen_races.register.ModItem;
+import hik1tka.risen_races.register.ModSounds;
 import net.fabricmc.api.ModInitializer;
 
 import net.minecraft.util.Identifier;
@@ -23,6 +24,7 @@ public class RisenRaces implements ModInitializer {
         ModEffect.registerModEffect();
         ModItem.registerModItem();
         ModEntity.registerModEntity();
+        ModSounds.registerSounds();
 	}
 
 	public static Identifier id(String path) {
