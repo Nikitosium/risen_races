@@ -1,6 +1,5 @@
 package hik1tka.risen_races;
 
-import hik1tka.risen_races.client.RisenRacesClient;
 import hik1tka.risen_races.register.ModEffect;
 import hik1tka.risen_races.register.ModEntity;
 import hik1tka.risen_races.register.ModItem;

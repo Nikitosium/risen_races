@@ -72,7 +72,6 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
     @Nullable
     @Override
     protected SoundEvent getHurtSound(DamageSource source) {
-        // Шанс 1 до 1000 для чоловіка відтворити звук mnogod
         if (!this.isFemale() && this.random.nextInt(1000) == 0) {
             return ModSounds.MALE_NO_GOD;
         }
@@ -104,7 +103,6 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
     }
 
     public String getProfession() {
-        // Динамічно отримуємо назву професії з даних моба
         return net.minecraft.registry.Registries.VILLAGER_PROFESSION.getId(this.getVillagerData().getProfession()).getPath();
     }
 
@@ -138,8 +136,31 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
     }
 
     @Override
+    public boolean canBreed() {
+        boolean baseCanBreed = super.canBreed();
+        // Якщо захочеш логувати кожен тік, коли гра питає чи може він розмножуватись, розкоментуй (але це спамитиме в консоль):
+        // RisenRaces.LOGGER.info("[Human Breeding] canBreed called for Human (Female=" + this.isFemale() + "). Result: " + baseCanBreed);
+        return baseCanBreed;
+    }
+
+    @Override
+    public boolean wantsToStartBreeding() {
+        boolean result = super.wantsToStartBreeding();
+        RisenRaces.LOGGER.info("[Human Breeding] wantsToStartBreeding called for Human (Female=" + this.isFemale() + "). Result: " + result);
+        return result;
+    }
+
+    @Override
+    public void eatForBreeding() {
+        RisenRaces.LOGGER.info("[Human Breeding] eatForBreeding called for Human (Female=" + this.isFemale() + ").");
+        super.eatForBreeding();
+    }
+
+    @Override
     public boolean canBreedWith(PassiveEntity other) {
-        return this.canBreedWithGendered(other);
+        boolean canBreed = this.canBreedWithGendered(other);
+        RisenRaces.LOGGER.info("[Human Breeding] canBreedWith called between Human (Female=" + this.isFemale() + ") and Other (Class=" + other.getClass().getSimpleName() + "). Result: " + canBreed);
+        return canBreed;
     }
 
     @Override
