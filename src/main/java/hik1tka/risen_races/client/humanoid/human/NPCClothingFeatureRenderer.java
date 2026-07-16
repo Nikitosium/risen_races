@@ -9,7 +9,6 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 
 public class NPCClothingFeatureRenderer extends FeatureRenderer<HumanEntity, PlayerEntityModel<HumanEntity>> {
-
     public NPCClothingFeatureRenderer(FeatureRendererContext<HumanEntity, PlayerEntityModel<HumanEntity>> context) {
         super(context);
     }
@@ -25,14 +24,16 @@ public class NPCClothingFeatureRenderer extends FeatureRenderer<HumanEntity, Pla
             return;
         }
 
-        // 1. Текстура професії (фартух)
-        Identifier professionId = new Identifier("m_and_d", "textures/entity/human/profession/" + prof + ".png");
+        // 1. Текстура професії (фартух), змінено namespace на risen_races
+        Identifier professionId = new Identifier("risen_races", "textures/entity/human/profession/" + prof + ".png");
 
         // 2. Текстура рівня (камінь)
         Identifier levelId = new Identifier("minecraft", "textures/entity/villager/profession_level/stone.png");
 
         // Малюємо шари тільки для тих, хто пройшов перевірку вище
         renderModel(this.getContextModel(), professionId, matrices, vertexConsumers, light, entity, 1.0F, 1.0F, 1.0F);
-        renderModel(this.getContextModel(), levelId, matrices, vertexConsumers, light, entity, 1.0F, 1.0F, 1.0F);
+
+        // Закоментовано рендер значка рівня, щоб не було накладання ванільних бейджів поверх текстур
+        // renderModel(this.getContextModel(), levelId, matrices, vertexConsumers, light, entity, 1.0F, 1.0F, 1.0F);
     }
 }

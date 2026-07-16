@@ -27,5 +27,14 @@
       "risen_races:fgigin",
       "risen_races:fhmm"
     ]
+  },
+  "male_no": {
+    "sounds": [ "risen_races:mno" ]
+  },
+  "female_no": {
+    "sounds": [ "risen_races:fno" ]
+  },
+  "male_no_god": {
+    "sounds": [ "risen_races:mnogod" ]
   }
 }

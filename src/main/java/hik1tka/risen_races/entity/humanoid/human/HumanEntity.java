@@ -63,9 +63,6 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
         return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
     }
 
-    // ==========================================
-    // ЗВУКИ
-    // ==========================================
     @Nullable
     @Override
     protected SoundEvent getAmbientSound() {
@@ -75,6 +72,10 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
     @Nullable
     @Override
     protected SoundEvent getHurtSound(DamageSource source) {
+        // Шанс 1 до 1000 для чоловіка відтворити звук mnogod
+        if (!this.isFemale() && this.random.nextInt(1000) == 0) {
+            return ModSounds.MALE_NO_GOD;
+        }
         return this.isFemale() ? ModSounds.FEMALE_HURT : ModSounds.MALE_HURT;
     }
 
@@ -84,9 +85,16 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
         return ModSounds.ENTITY_DEATH;
     }
 
-    // ==========================================
-    // МЕТОДИ ДЛЯ РЕНДЕРЕРУ
-    // ==========================================
+    @Override
+    protected SoundEvent getTradingSound(boolean sold) {
+        if (!sold) {
+            return this.isFemale() ? super.getTradingSound(false) : ModSounds.MALE_NO;
+            // Коли буде готовий звук для жінки, розкоментуй:
+            // return this.isFemale() ? ModSounds.FEMALE_NO : ModSounds.MALE_NO;
+        }
+        return super.getTradingSound(sold);
+    }
+
     public int getSkinId() {
         return this.dataTracker.get(SKIN_ID);
     }
@@ -96,16 +104,14 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
     }
 
     public String getProfession() {
-        return "none";
+        // Динамічно отримуємо назву професії з даних моба
+        return net.minecraft.registry.Registries.VILLAGER_PROFESSION.getId(this.getVillagerData().getProfession()).getPath();
     }
 
     public float getScaleModifier() {
         return this.isFemale() ? 0.95f : 1.0f;
     }
 
-    // ==========================================
-    // РЕАЛІЗАЦІЯ INTERFACE (IGenderedEntity)
-    // ==========================================
     @Override
     public String getRaceId() {
         return "human";
@@ -136,9 +142,6 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
         return this.canBreedWithGendered(other);
     }
 
-    // ==========================================
-    // ЗБЕРЕЖЕННЯ В СВІТ (NBT)
-    // ==========================================
     @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
