@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "AEA",
+    "SGS",
+    "ABA"
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "E": { "item": "minecraft:experience_bottle" },
+    "S": { "item": "minecraft:ghast_tear" },
+    "G": { "item": "minecraft:golden_apple" },
+    "B": { "item": "minecraft:blaze_powder" }
+  },
+  "result": {
+    "item": "minecraft:enchanted_golden_apple",
+    "count": 1
+  }
+}
