@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "risen_races",
+	"version": "${version}",
+	"name": "Risen Races",
+	"description": "Risen Races Mod add the new races Rynar Human & new Piglins!",
+	"authors": [
+		"Hik1tka"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/risen_races/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"hik1tka.risen_races.RisenRaces"
+		],
+        "client": [
+			"hik1tka.risen_races.client.RisenRacesClient"
+		],
+		"fabric-datagen": [
+			"hik1tka.risen_races.RisenRacesDataGenerator"
+		]
+	},
+	"mixins": [
+		"risen_races.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}

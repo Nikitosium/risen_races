@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "hik1tka.risen_races.mixin",
+	"compatibilityLevel": "JAVA_17",
+	"mixins": [
+		"RisenRacesMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
