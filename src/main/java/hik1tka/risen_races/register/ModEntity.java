@@ -6,7 +6,7 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRe
 
 public class ModEntity {
     public static void registerModEntity(){
-        RisenRaces.LOGGER.info("Register Mod Entities for" + RisenRaces.MOD_ID);
+        RisenRaces.LOGGER.info("Register Mod Entities for " + RisenRaces.MOD_ID);
 
         //Entities:
         FabricDefaultAttributeRegistry.register(HumanEntity.HUMAN, HumanEntity.createHumanAttributes());
