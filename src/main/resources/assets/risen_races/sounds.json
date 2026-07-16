@@ -1,0 +1,31 @@
+{
+  "death": {
+    "sounds": [ "m_and_d:death" ]
+  },
+  "male_hurt": {
+    "sounds": [
+      "m_and_d:mdamage1",
+      "m_and_d:mdamage2"
+    ]
+  },
+  "male_ambient": {
+    "sounds": [
+      "m_and_d:maha",
+      "m_and_d:mgigin",
+      "m_and_d:mu-uh"
+    ]
+  },
+  "female_hurt": {
+    "sounds": [
+      "m_and_d:fdamage1",
+      "m_and_d:fdamage2"
+    ]
+  },
+  "female_ambient": {
+    "sounds": [
+      "m_and_d:faha",
+      "m_and_d:fgigin",
+      "m_and_d:fhmm"
+    ]
+  }
+}
