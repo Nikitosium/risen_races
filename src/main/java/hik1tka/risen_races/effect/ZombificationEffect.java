@@ -8,8 +8,9 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 
 public class ZombificationEffect extends StatusEffect {
-    public ZombificationEffect() {
-        super(StatusEffectCategory.HARMFUL, 0x630B0B);
+
+    public ZombificationEffect(StatusEffectCategory category, int color) {
+        super(category, color);
     }
 
     @Override

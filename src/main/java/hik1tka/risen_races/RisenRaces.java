@@ -1,5 +1,6 @@
 package hik1tka.risen_races;
 
+import hik1tka.risen_races.client.RisenRacesClient;
 import hik1tka.risen_races.register.ModEffect;
 import hik1tka.risen_races.register.ModEntity;
 import hik1tka.risen_races.register.ModItem;
@@ -21,7 +22,7 @@ public class RisenRaces implements ModInitializer {
 
         ModEffect.registerModEffect();
         ModItem.registerModItem();
-        ModEntity.registryModEntity();
+        ModEntity.registerModEntity();
 	}
 
 	public static Identifier id(String path) {

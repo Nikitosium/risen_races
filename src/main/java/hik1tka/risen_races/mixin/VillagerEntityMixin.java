@@ -20,7 +20,7 @@ public abstract class VillagerEntityMixin {
         }
 
         // Приводимо себе (this) до інтерфейсу IGenderedEntity
-        IGenderedEntity thisEntity = (IGenderedEntity) (Object) this;
+        if (!((Object) this instanceof IGenderedEntity thisEntity)) return;
 
         // Викликаємо нашу перевірку статі та раси, яку ми написали на Кроці 1
         boolean canBreed = thisEntity.canBreedWithGendered(other);
