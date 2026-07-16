@@ -15,7 +15,7 @@ import net.minecraft.util.Identifier;
 
 public class FarmerHatFeatureRenderer<T extends HumanEntity, M extends EntityModel<T> & ModelWithHead> extends FeatureRenderer<T, M> {
     private final FarmerHatModel<T> hatModel;
-    private static final Identifier TEXTURE = new Identifier("m_and_d", "textures/entity/human/profession/farmer.png");
+    private static final Identifier TEXTURE = new Identifier("risen_races", "textures/entity/human/profession/farmer.png");
 
     public FarmerHatFeatureRenderer(FeatureRendererContext<T, M> context, FarmerHatModel<T> hatModel) {
         super(context);

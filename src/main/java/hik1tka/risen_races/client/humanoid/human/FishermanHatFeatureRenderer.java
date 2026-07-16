@@ -17,7 +17,7 @@ public class FishermanHatFeatureRenderer<T extends HumanEntity, M extends Entity
     private final FishermanHatModel<T> hatModel;
 
     // ПЕРЕВІР ЦЕЙ ШЛЯХ: файл має лежати в assets/m_and_d/textures/entity/human/profession/fisherman.png
-    private static final Identifier TEXTURE = new Identifier("m_and_d", "textures/entity/human/profession/fisherman_hat.png");
+    private static final Identifier TEXTURE = new Identifier("risen_races", "textures/entity/human/profession/fisherman_hat.png");
 
     public FishermanHatFeatureRenderer(FeatureRendererContext<T, M> context, FishermanHatModel<T> hatModel) {
         super(context);

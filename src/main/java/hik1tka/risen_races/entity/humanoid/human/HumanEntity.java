@@ -135,12 +135,65 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
         this.loveTicks = ticks;
     }
 
+    private int diagnosticTickCounter = 0;
+
     @Override
     public boolean canBreed() {
         boolean baseCanBreed = super.canBreed();
-        // Якщо захочеш логувати кожен тік, коли гра питає чи може він розмножуватись, розкоментуй (але це спамитиме в консоль):
-        // RisenRaces.LOGGER.info("[Human Breeding] canBreed called for Human (Female=" + this.isFemale() + "). Result: " + baseCanBreed);
+        RisenRaces.LOGGER.info("[Human Breeding] canBreed() for Human (Female=" + this.isFemale() + ", Profession=" + this.getProfession() + "). Result: " + baseCanBreed);
         return baseCanBreed;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+
+        // Діагностика раз на ~5 секунд (100 тіків), тільки на сервері
+        if (!this.getWorld().isClient) {
+            this.diagnosticTickCounter++;
+            if (this.diagnosticTickCounter >= 20) {
+                this.diagnosticTickCounter = 0;
+                logBreedingDiagnostics();
+            }
+        }
+    }
+
+    private void logBreedingDiagnostics() {
+        int nearbyAdultVillagers = this.getWorld().getEntitiesByClass(
+                VillagerEntity.class,
+                this.getBoundingBox().expand(16.0),
+                v -> !v.isBaby()
+        ).size();
+
+        int freeBeds = -1;
+        try {
+            net.minecraft.world.poi.PointOfInterestStorage poiStorage = ((net.minecraft.server.world.ServerWorld) this.getWorld()).getPointOfInterestStorage();
+            freeBeds = (int) poiStorage.getInSquare(
+                    poiType -> poiType.matchesKey(net.minecraft.world.poi.PointOfInterestTypes.HOME),
+                    this.getBlockPos(),
+                    16,
+                    net.minecraft.world.poi.PointOfInterestStorage.OccupationStatus.HAS_SPACE
+            ).count();
+        } catch (Exception e) {
+            RisenRaces.LOGGER.info("[Human Breeding] POI query failed: " + e);
+        }
+
+        StringBuilder inv = new StringBuilder();
+        net.minecraft.inventory.SimpleInventory inventory = this.getInventory();
+        for (int i = 0; i < inventory.size(); i++) {
+            net.minecraft.item.ItemStack stack = inventory.getStack(i);
+            if (!stack.isEmpty()) {
+                inv.append(stack.getItem()).append("x").append(stack.getCount()).append(" ");
+            }
+        }
+
+        RisenRaces.LOGGER.info("[Human Breeding][DIAG] pos=" + this.getBlockPos()
+                + " isBaby=" + this.isBaby()
+                + " age=" + this.getBreedingAge()
+                + " canBreed=" + this.canBreed()
+                + " nearbyAdultVillagers(16 blocks)=" + nearbyAdultVillagers
+                + " freeBedsWithSpace(16 blocks)=" + freeBeds
+                + " inventory=[" + inv.toString().trim() + "]");
     }
 
     @Override

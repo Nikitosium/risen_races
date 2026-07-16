@@ -21,6 +21,7 @@ public class RisenRaces implements ModInitializer {
         LOGGER.info("Mod has been initialised");
 
         ModEffect.registerModEffect();
+        ModEffect.registerEffects();
         ModItem.registerModItem();
         ModEntity.registerModEntity();
         ModSounds.registerSounds();
