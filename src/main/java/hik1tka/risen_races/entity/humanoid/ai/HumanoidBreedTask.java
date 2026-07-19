@@ -53,7 +53,7 @@ public class HumanoidBreedTask extends MultiTickTask<AbstractHumanoidEntity> {
     protected void run(ServerWorld world, AbstractHumanoidEntity entity, long time) {
         entity.getBrain().remember(MemoryModuleType.BREED_TARGET, this.mate);
         entity.getBrain().remember(MemoryModuleType.LOOK_TARGET,
-                new net.minecraft.entity.ai.brain.LookTarget(this.mate));
+                new net.minecraft.entity.ai.brain.EntityLookTarget(this.mate, true));
         moveTowardsMate(entity);
     }
 
