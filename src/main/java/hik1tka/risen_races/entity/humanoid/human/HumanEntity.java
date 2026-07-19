@@ -1,18 +1,16 @@
 package hik1tka.risen_races.entity.humanoid.human;
 
 import hik1tka.risen_races.RisenRaces;
-import hik1tka.risen_races.entity.humanoid.ai.AbstractHumanoidEntity;
+import hik1tka.risen_races.util.IGenderedEntity;
 import hik1tka.risen_races.register.ModSounds;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
-import net.minecraft.entity.EntityData;
-import net.minecraft.entity.EntityDimensions;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.*;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.passive.PassiveEntity;
+import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -23,8 +21,7 @@ import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
-public class HumanEntity extends AbstractHumanoidEntity {
-
+public class HumanEntity extends VillagerEntity implements IGenderedEntity {
     public static final EntityType<HumanEntity> HUMAN = Registry.register(
             Registries.ENTITY_TYPE,
             new Identifier(RisenRaces.MOD_ID, "human"),
@@ -34,36 +31,34 @@ public class HumanEntity extends AbstractHumanoidEntity {
     );
 
     public static net.minecraft.entity.attribute.DefaultAttributeContainer.Builder createHumanAttributes() {
-        return AbstractHumanoidEntity.createMobAttributes()
+        return VillagerEntity.createMobAttributes()
                 .add(net.minecraft.entity.attribute.EntityAttributes.GENERIC_MAX_HEALTH, 20.0)
                 .add(net.minecraft.entity.attribute.EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.5);
     }
 
+    private static final TrackedData<Boolean> FEMALE = DataTracker.registerData(HumanEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Integer> SKIN_ID = DataTracker.registerData(HumanEntity.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<String> PROFESSION = DataTracker.registerData(HumanEntity.class, TrackedDataHandlerRegistry.STRING);
 
-    public HumanEntity(EntityType<? extends AbstractHumanoidEntity> entityType, World world) {
-        super(entityType, world, "human");
-    }
-
-    @Override
-    public AbstractHumanoidEntity.Race getRace() {
-        return AbstractHumanoidEntity.Race.HUMAN;
+    public HumanEntity(EntityType<? extends VillagerEntity> entityType, World world) {
+        super(entityType, world);
     }
 
     @Override
     protected void initDataTracker() {
         super.initDataTracker();
+        this.dataTracker.startTracking(FEMALE, false);
         this.dataTracker.startTracking(SKIN_ID, 0);
-        this.dataTracker.startTracking(PROFESSION, "none");
     }
 
     @Override
     public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
-        EntityData data = super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
-        int maxSkins = this.isFemale() ? 12 : 10;
+        boolean isFemale = this.random.nextBoolean();
+        this.setFemale(isFemale);
+
+        int maxSkins = isFemale ? 12 : 10;
         this.setSkinId(this.random.nextInt(maxSkins));
-        return data;
+
+        return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
     }
 
     @Nullable
@@ -87,6 +82,16 @@ public class HumanEntity extends AbstractHumanoidEntity {
         return ModSounds.ENTITY_DEATH;
     }
 
+    @Override
+    protected SoundEvent getTradingSound(boolean sold) {
+        if (!sold) {
+            return this.isFemale() ? super.getTradingSound(false) : ModSounds.MALE_NO;
+            // Коли буде готовий звук для жінки, розкоментуй:
+            // return this.isFemale() ? ModSounds.FEMALE_NO : ModSounds.MALE_NO;
+        }
+        return super.getTradingSound(sold);
+    }
+
     public int getSkinId() {
         return this.dataTracker.get(SKIN_ID);
     }
@@ -96,11 +101,7 @@ public class HumanEntity extends AbstractHumanoidEntity {
     }
 
     public String getProfession() {
-        return this.dataTracker.get(PROFESSION);
-    }
-
-    public void setProfession(String profession) {
-        this.dataTracker.set(PROFESSION, profession);
+        return Registries.VILLAGER_PROFESSION.getId(this.getVillagerData().getProfession()).getPath();
     }
 
     public float getScaleModifier() {
@@ -108,20 +109,56 @@ public class HumanEntity extends AbstractHumanoidEntity {
     }
 
     @Override
+    public String getRaceId() {
+        return "human";
+    }
+
+    @Override
+    public boolean isFemale() {
+        return this.dataTracker.get(FEMALE);
+    }
+
+    @Override
+    public void setFemale(boolean female) {
+        this.dataTracker.set(FEMALE, female);
+    }
+
+    // Люди (як і звичайні rynar-жителі) розмножуються повністю ВАНІЛЬНИМ шляхом:
+    // ліжка + їжа в інвентарі + брейн-задача VillagerBreedTask. Ніякого годування
+    // хлібом та ручного пошуку пари тут більше немає — canBreed()/wantsToStartBreeding()
+    // навмисно НЕ перевизначені, тож працює стандартна логіка VillagerEntity.
+    // Стать/раса при цьому враховуються автоматично через VillagerBreedTaskMixin.
+    @Override
+    public boolean isInLove() {
+        return false;
+    }
+
+    @Override
+    public void setLoveTicks(int ticks) {
+        // Не використовується: люди не мають "закоханості" від їжі гравцем,
+        // як і звичайні жителі — розмноження повністю автоматичне (ваніль).
+    }
+
+    @Override
+    public boolean canBreedWith(PassiveEntity other) {
+        return this.canBreedWithGendered(other);
+    }
+
+    @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
+        nbt.putBoolean("IsFemale", this.isFemale());
         nbt.putInt("SkinId", this.getSkinId());
-        nbt.putString("Profession", this.getProfession());
     }
 
     @Override
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
+        if (nbt.contains("IsFemale")) {
+            this.setFemale(nbt.getBoolean("IsFemale"));
+        }
         if (nbt.contains("SkinId")) {
             this.setSkinId(nbt.getInt("SkinId"));
-        }
-        if (nbt.contains("Profession")) {
-            this.setProfession(nbt.getString("Profession"));
         }
     }
 }
