@@ -12,16 +12,16 @@ public class HumanoidBrain {
 
     public static void init(Brain<AbstractHumanoidEntity> brain, AbstractHumanoidEntity entity) {
         // 1. Встановлюємо РОЗКЛАД як у жителя (Vanilla Villager Schedule)
-        // Ранок/День - WORK
-        // Вечір - MEET (збори біля колокола)
-        // Ніч - REST (сон)
         brain.setSchedule(Schedule.VILLAGER_DEFAULT);
 
-        // 2. Реєструємо, ЩО саме вони мають робити під час кожної активності
-        registerCoreActivities(brain); // Базові речі: плавання, паніка
-        registerIdleActivities(brain); // Коли нічого робити
+        // 2. Реєструємо активності
+        registerCoreActivities(brain); // Базові речі: плавання, ПАНІКА/ВТЕЧА
+        registerIdleActivities(brain); // Коли нічого робити (РОЗМНОЖЕННЯ, блукання)
         registerRestActivities(brain); // Коли час спати (REST)
-        // TODO: Пізніше додамо сюди registerWorkActivities і registerMeetActivities!
+
+        // Підключаємо роботу і збори
+        registerWorkActivities(brain);
+        registerMeetActivities(brain);
 
         // 3. Запускаємо мозок
         brain.setCoreActivities(ImmutableSet.of(Activity.CORE));
@@ -31,7 +31,6 @@ public class HumanoidBrain {
     }
 
     public static void updateActivities(AbstractHumanoidEntity entity) {
-        // Цей метод викликається кожен тік. Він перевіряє час і перемикає розклад (напр. з IDLE на REST)
         entity.getBrain().refreshActivities(entity.getWorld().getTimeOfDay(), entity.getWorld().getTime());
     }
 
@@ -40,9 +39,12 @@ public class HumanoidBrain {
     // ==========================================
 
     private static void registerCoreActivities(Brain<AbstractHumanoidEntity> brain) {
-        // Те, що працює ЗАВЖДИ (випливти з води, прокинутись вранці, дивитись навколо)
+        // Додаємо твій HumanoidFleeTask у CORE.
+        // CORE працює ЗАВЖДИ (навіть якщо моб спить чи працює),
+        // тому якщо він побачить ворога, він негайно почне тікати.
         brain.setTaskList(Activity.CORE, 0, ImmutableList.of(
                 new StayAboveWaterTask(0.8F),
+                new HumanoidFleeTask(12.0f, 1.25), // <--- Додано втечу від ворогів
                 WakeUpTask.create(),
                 new LookAroundTask(45, 90),
                 new WanderAroundTask()
@@ -50,20 +52,39 @@ public class HumanoidBrain {
     }
 
     private static void registerIdleActivities(Brain<AbstractHumanoidEntity> brain) {
-        // Коли час IDLE (вільний час), вони блукають туди-сюди і роздивляються
         brain.setTaskList(Activity.IDLE, 10, ImmutableList.of(
+                new HumanoidBreedTask(), // <--- Додано розмноження, коли моб вільний
                 new RandomTask<>(ImmutableList.of(
                         Pair.of(StrollTask.create(0.6F), 2),
-                        Pair.of(new WaitTask(30, 60), 1) // Просто стояти
+                        Pair.of(new WaitTask(30, 60), 1)
                 ))
         ));
     }
 
     private static void registerRestActivities(Brain<AbstractHumanoidEntity> brain) {
-        // Коли ніч (REST), треба шукати ліжко і спати
         brain.setTaskList(Activity.REST, 10, ImmutableList.of(
-                // Це ванільні таски для пошуку ліжка
                 new SleepTask()
+        ));
+    }
+
+    private static void registerWorkActivities(Brain<AbstractHumanoidEntity> brain) {
+        // Коли настане час працювати за розкладом (Day)
+        brain.setTaskList(Activity.WORK, 10, ImmutableList.of(
+                // TODO: В майбутньому тут буде твій кастомний HumanoidWorkTask
+                // Поки що нехай просто блукають
+                new WanderAroundTask()
+        ));
+    }
+
+    private static void registerMeetActivities(Brain<AbstractHumanoidEntity> brain) {
+        // Коли настане час іти до колокола (Late afternoon)
+        brain.setTaskList(Activity.MEET, 10, ImmutableList.of(
+                // TODO: В майбутньому тут буде таск для пошуку колокола та соціалізації
+                // Поки що нехай просто дивляться один на одного та гуляють
+                new RandomTask<>(ImmutableList.of(
+                        Pair.of(StrollTask.create(0.6F), 2),
+                        Pair.of(new LookAroundTask(45, 90), 2)
+                ))
         ));
     }
 }
