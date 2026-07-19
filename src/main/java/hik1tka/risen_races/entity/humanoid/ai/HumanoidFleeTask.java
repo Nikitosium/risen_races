@@ -6,14 +6,14 @@ import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.WalkTarget;
-import net.minecraft.entity.ai.brain.task.Task;
+import net.minecraft.entity.ai.brain.task.MultiTickTask;
 import net.minecraft.entity.mob.*;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
 
 import java.util.List;
 
-public class HumanoidFleeTask extends Task<AbstractHumanoidEntity> {
+public class HumanoidFleeTask extends MultiTickTask<AbstractHumanoidEntity> {
     private final float maxDistance;
     private final double speed;
     private LivingEntity dangerTarget;
@@ -43,12 +43,18 @@ public class HumanoidFleeTask extends Task<AbstractHumanoidEntity> {
 
         for (LivingEntity potentialDanger : nearbyEntities) {
             // Твій список небезпечних тварин
-            if (potentialDanger instanceof ZombieEntity ||
+            if (    potentialDanger instanceof ZombieEntity ||
                     potentialDanger instanceof SkeletonEntity ||
                     potentialDanger instanceof CreeperEntity ||
                     potentialDanger instanceof EndermanEntity ||
                     potentialDanger instanceof SpiderEntity ||
-                    potentialDanger instanceof WitchEntity) {
+                    potentialDanger instanceof WitchEntity ||
+                    potentialDanger instanceof SlimeEntity ||
+                    potentialDanger instanceof RavagerEntity ||
+                    potentialDanger instanceof IllagerEntity ||
+                    potentialDanger instanceof IllusionerEntity ||
+                    potentialDanger instanceof PillagerEntity
+            ) {
 
                 this.dangerTarget = potentialDanger;
                 return true; // Знайшли ворога — запускаємо таск втікання!

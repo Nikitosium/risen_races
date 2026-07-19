@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.WalkTarget;
-import net.minecraft.entity.ai.brain.task.Task;
+import net.minecraft.entity.ai.brain.task.MultiTickTask;
 import net.minecraft.entity.passive.PassiveEntity;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
@@ -17,7 +17,7 @@ import java.util.List;
  * Аналог вбудованого VillagerEntity-breeding, але без POI/professions —
  * лише пошук закоханого партнера тієї ж раси, підхід і спавн дитини.
  */
-public class HumanoidBreedTask extends Task<AbstractHumanoidEntity> {
+public class HumanoidBreedTask extends MultiTickTask<AbstractHumanoidEntity> {
 
     private static final double BREED_RANGE = 8.0;      // радіус пошуку партнера
     private static final double BREED_DISTANCE_SQ = 2.5 * 2.5; // на якій відстані вже "спарюються"
