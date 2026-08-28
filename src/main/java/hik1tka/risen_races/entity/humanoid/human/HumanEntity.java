@@ -56,15 +56,19 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
 
     @Override
     public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
-        // Явно виставляємо расу - не покладаємось на дефолт з HumanoidEntity,
-        // бо він однаковий для всіх підрас і збігається з HUMAN лише випадково.
         this.setRace(hik1tka.risen_races.entity.humanoid.HumanoidRace.HUMAN);
 
-        boolean isFemale = this.random.nextBoolean();
-        this.setFemale(isFemale);
+        // ЗЧИТУЄМО ВЖЕ ГОТОВУ СТАТЬ З БАТЬКІВСЬКОГО КЛАСУ:
+        boolean female = this.isFemale();
 
-        int maxSkins = isFemale ? 12 : 10;
-        this.setSkinId(this.random.nextInt(maxSkins));
+        // Задаємо скін залежно від існуючої статі:
+        if (female) {
+            // Жіночі скіни (наприклад, 0..11)
+            this.setSkinId(this.random.nextInt(12));
+        } else {
+            // Чоловічі скіни (наприклад, 12..21)
+            this.setSkinId(12 + this.random.nextInt(10));
+        }
 
         return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
     }

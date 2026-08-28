@@ -2,19 +2,20 @@ package hik1tka.risen_races.entity.humanoid;
 
 import hik1tka.risen_races.entity.humanoid.data.HumanoidData;
 import hik1tka.risen_races.entity.humanoid.goal.FindMateGoal;
+import hik1tka.risen_races.entity.humanoid.goal.PanicUntilSafeGoal;
 import hik1tka.risen_races.entity.humanoid.goal.RizenPiglinDefenseGoal;
 import net.minecraft.entity.EntityType;
 //import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.entity.ai.goal.FleeEntityGoal;
-import net.minecraft.entity.ai.goal.GoalSelector;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.MerchantEntity;
 //import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvent;
@@ -48,7 +49,7 @@ public abstract class HumanoidEntity extends MerchantEntity {
     public static DefaultAttributeContainer.Builder createHumanoidAttributes() {
         return MerchantEntity.createMobAttributes()
                 .add(EntityAttributes.GENERIC_MAX_HEALTH, 20.0D)
-                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.5D)
+                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.27D)
                 .add(EntityAttributes.GENERIC_FOLLOW_RANGE, 48.0D);
     }
 
@@ -147,7 +148,11 @@ public abstract class HumanoidEntity extends MerchantEntity {
         GoalSelector goals = this.goalSelector;
 
         // Розмноження - спільне для всіх рас
+        goals.add(1, new PanicUntilSafeGoal(this, 1.3D, 5));
         goals.add(2, new FindMateGoal(this));
+        goals.add(6, new WanderAroundFarGoal(this, 0.6D)); // Блукання по світу
+        goals.add(7, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F)); // Дивитися на гравця
+        goals.add(8, new LookAroundGoal(this));
 
         switch (getRace().getDangerBehavior()) {
             case FLEE -> {
