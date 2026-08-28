@@ -8,6 +8,7 @@ import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.MobEntityRenderer;
 import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
+import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 
@@ -16,9 +17,9 @@ public class HumanEntityRender extends MobEntityRenderer<HumanEntity, PlayerEnti
     private final PlayerEntityModel<HumanEntity> slimModel;
 
     public HumanEntityRender(EntityRendererFactory.Context context) {
-        super(context, new PlayerEntityModel<>(context.getPart(EntityModelLayers.PLAYER), false), 0.5f);
+        super(context, createModel(context.getPart(EntityModelLayers.PLAYER), false), 0.5f);
         this.wideModel = this.model;
-        this.slimModel = new PlayerEntityModel<>(context.getPart(EntityModelLayers.PLAYER_SLIM), true);
+        this.slimModel = createModel(context.getPart(EntityModelLayers.PLAYER_SLIM), true);
 
         this.addFeature(new NPCClothingFeatureRenderer(this));
 
@@ -27,6 +28,24 @@ public class HumanEntityRender extends MobEntityRenderer<HumanEntity, PlayerEnti
 
         FishermanHatModel<HumanEntity> fishermanHat = new FishermanHatModel<>(context.getPart(ModModelLayers.FISHERMAN_HAT));
         this.addFeature(new FishermanHatFeatureRenderer<>(this, fishermanHat));
+    }
+
+    /**
+     * Створює PlayerEntityModel, в якому вимкнено вбудований ванільний "дитячий"
+     * ефект (велика голова + стиснуте тіло, як у дитини-жителя). Це поведінка,
+     * яку AnimalModel/BipedEntityModel вмикає САМА в setAngles(), коли
+     * entity.isBaby() == true, і вона не пов'язана з методом scale() нижче.
+     * Тут ми примусово тримаємо child = false, а розмір дитини робимо через
+     * рівномірний scale() - так голова і тіло лишаються пропорційними.
+     */
+    private static PlayerEntityModel<HumanEntity> createModel(ModelPart root, boolean slim) {
+        return new PlayerEntityModel<>(root, slim) {
+            @Override
+            public void setAngles(HumanEntity entity, float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch) {
+                super.setAngles(entity, limbAngle, limbDistance, animationProgress, headYaw, headPitch);
+                this.child = false;
+            }
+        };
     }
 
     @Override
@@ -71,14 +90,7 @@ public class HumanEntityRender extends MobEntityRenderer<HumanEntity, PlayerEnti
 
     @Override
     protected void scale(HumanEntity entity, MatrixStack matrices, float amount) {
-        this.model = entity.isFemale() ? slimModel : wideModel;
-        this.model.child = false;
-
-        float scale = entity.getScaleModifier();
-        if (entity.isBaby()) {
-            scale *= 0.65f;
-        }
-
-        matrices.scale(scale, scale, scale);
+        float f = entity.getScaleFactor();
+        matrices.scale(f, f, f);
     }
 }

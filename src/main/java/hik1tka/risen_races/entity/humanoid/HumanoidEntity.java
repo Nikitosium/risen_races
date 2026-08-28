@@ -103,6 +103,14 @@ public abstract class HumanoidEntity extends MerchantEntity {
         return breedingCooldown <= 0;
     }
 
+    @Override
+    public float getSoundPitch() {
+        if (this.isBaby()) {
+            return (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.5F;
+        }
+        return super.getSoundPitch();
+    }
+
     public void resetBreedingCooldown() {
         // приблизно 5 хв (20 тіків/сек) - підбери під свій баланс
         this.breedingCooldown = 6000;
@@ -134,11 +142,26 @@ public abstract class HumanoidEntity extends MerchantEntity {
 
         baby.setRace(this.getRace());
         baby.setFemale(this.random.nextBoolean());
+        // Робимо ентіті дитиною: без цього isBaby() == false і getScaleFactor()
+        // (в HumanEntity) ніколи не застосовує зменшений масштаб.
+        baby.setBreedingAge(-24000);
         baby.refreshPositionAndAngles(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
+        // Даємо расі шанс довизначити щось специфічне для щойно народженої дитини
+        // (наприклад, скін по статі - див. HumanEntity.onBabyCreated).
+        onBabyCreated(baby);
         serverWorld.spawnEntityAndPassengers(baby);
 
         this.resetBreedingCooldown();
         partner.resetBreedingCooldown();
+    }
+
+    /**
+     * Хук, що викликається одразу після створення й ініціалізації дитини
+     * в breedWith(), до її заспавнення у світі. За замовчуванням нічого
+     * не робить. Раси, яким треба щось довизначити для дитини (напр. скін,
+     * що не входить у HumanoidData/RACE/IS_FEMALE), перевизначають цей метод.
+     */
+    protected void onBabyCreated(HumanoidEntity baby) {
     }
 
     // ---------- Goals ----------

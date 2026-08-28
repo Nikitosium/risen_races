@@ -58,19 +58,33 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
         this.setRace(hik1tka.risen_races.entity.humanoid.HumanoidRace.HUMAN);
 
-        // ЗЧИТУЄМО ВЖЕ ГОТОВУ СТАТЬ З БАТЬКІВСЬКОГО КЛАСУ:
-        boolean female = this.isFemale();
-
-        // Задаємо скін залежно від існуючої статі:
-        if (female) {
-            // Жіночі скіни (наприклад, 0..11)
-            this.setSkinId(this.random.nextInt(12));
-        } else {
-            // Чоловічі скіни (наприклад, 12..21)
-            this.setSkinId(12 + this.random.nextInt(10));
-        }
+        this.rollSkinForGender();
 
         return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
+    }
+
+    /**
+     * Рандомізує SkinId відповідно до поточної статі (isFemale()).
+     * Викликається і при природному спавні (initialize), і для дітей,
+     * народжених через HumanoidEntity#breedWith (onBabyCreated).
+     */
+    private void rollSkinForGender() {
+        if (this.isFemale()) {
+            // Жіночі скіни: 0..11 (всього 12 скінів)
+            this.setSkinId(this.random.nextInt(12));
+        } else {
+            // Чоловічі скіни: 0..9 (всього 10 скінів)
+            this.setSkinId(this.random.nextInt(10));
+        }
+    }
+
+    @Override
+    protected void onBabyCreated(hik1tka.risen_races.entity.humanoid.HumanoidEntity baby) {
+        // На момент виклику цього хука стать дитини (setFemale) вже виставлена
+        // в breedWith(), тому тут просто підбираємо скін під неї.
+        if (baby instanceof HumanEntity human) {
+            human.rollSkinForGender();
+        }
     }
 
     @Override
@@ -111,6 +125,11 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
 
     public int getSkinId() {
         return this.dataTracker.get(SKIN_ID);
+    }
+
+    @Override
+    public float getScaleFactor() {
+        return this.isBaby() ? 0.7f : 1.0f;
     }
 
     public void setSkinId(int id) {
