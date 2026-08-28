@@ -11,7 +11,6 @@ import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.passive.PassiveEntity;
-import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -34,22 +33,19 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     );
 
     public static net.minecraft.entity.attribute.DefaultAttributeContainer.Builder createHumanAttributes() {
-        return VillagerEntity.createMobAttributes()
-                .add(net.minecraft.entity.attribute.EntityAttributes.GENERIC_MAX_HEALTH, 20.0)
-                .add(net.minecraft.entity.attribute.EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.5);
+        // Береш з HumanoidEntity, а не з VillagerEntity - HumanEntity з ним не споріднений.
+        return HumanoidEntity.createHumanoidAttributes();
     }
 
-    private static final TrackedData<Boolean> FEMALE = DataTracker.registerData(HumanEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Integer> SKIN_ID = DataTracker.registerData(HumanEntity.class, TrackedDataHandlerRegistry.INTEGER);
 
-    public HumanEntity(EntityType<? extends VillagerEntity> entityType, World world) {
+    public HumanEntity(EntityType<? extends HumanoidEntity> entityType, World world) {
         super(entityType, world);
     }
 
     @Override
     protected void initDataTracker() {
         super.initDataTracker();
-        this.dataTracker.startTracking(FEMALE, false);
         this.dataTracker.startTracking(SKIN_ID, 0);
     }
 
@@ -60,6 +56,10 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
 
     @Override
     public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
+        // Явно виставляємо расу - не покладаємось на дефолт з HumanoidEntity,
+        // бо він однаковий для всіх підрас і збігається з HUMAN лише випадково.
+        this.setRace(hik1tka.risen_races.entity.humanoid.HumanoidRace.HUMAN);
+
         boolean isFemale = this.random.nextBoolean();
         this.setFemale(isFemale);
 
@@ -113,9 +113,9 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
         this.dataTracker.set(SKIN_ID, id);
     }
 
-    public String getProfession() {
-        return this.getVillagerData().getProfession().id();
-    }
+    // TODO: getProfession() приберено — getVillagerData() існує лише у VillagerEntity,
+    // якого HumanoidEntity не наслідує. Коли зробиш власну систему професій,
+    // додай сюди свій метод (наприклад через ще один TrackedData<String>).
 
     public float getScaleModifier() {
         return this.isFemale() ? 0.95f : 1.0f;
@@ -123,18 +123,13 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
 
     @Override
     public String getRaceId() {
-        return "human";
+        // Похідне від getRace() з HumanoidEntity, а не окремий хардкод -
+        // одне джерело правди для раси.
+        return this.getRace().name().toLowerCase(java.util.Locale.ROOT);
     }
 
-    @Override
-    public boolean isFemale() {
-        return this.dataTracker.get(FEMALE);
-    }
-
-    @Override
-    public void setFemale(boolean female) {
-        this.dataTracker.set(FEMALE, female);
-    }
+    // isFemale()/setFemale() тепер повністю успадковані від HumanoidEntity -
+    // окремо не перевизначаємо, щоб не було двох джерел правди.
 
     @Override
     public boolean isInLove() {
@@ -155,16 +150,12 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
-        nbt.putBoolean("IsFemale", this.isFemale());
         nbt.putInt("SkinId", this.getSkinId());
     }
 
     @Override
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
-        if (nbt.contains("IsFemale")) {
-            this.setFemale(nbt.getBoolean("IsFemale"));
-        }
         if (nbt.contains("SkinId")) {
             this.setSkinId(nbt.getInt("SkinId"));
         }
