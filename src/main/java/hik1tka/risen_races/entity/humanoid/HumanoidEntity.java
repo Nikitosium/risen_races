@@ -1,5 +1,6 @@
 package hik1tka.risen_races.entity.humanoid;
 
+import hik1tka.risen_races.entity.humanoid.data.HumanoidData;
 import hik1tka.risen_races.entity.humanoid.goal.FindMateGoal;
 import hik1tka.risen_races.entity.humanoid.goal.RizenPiglinDefenseGoal;
 import net.minecraft.entity.EntityType;
@@ -57,8 +58,30 @@ public abstract class HumanoidEntity extends MerchantEntity {
         this.dataTracker.startTracking(RACE, HumanoidRace.HUMAN.ordinal());
         this.dataTracker.startTracking(IS_FEMALE, this.random.nextBoolean());
     }
+    // ---------- HumanoidData (Паспорт для Рендеру) ----------
+
+    /**
+     * Формує об'єкт даних для рендерерів одягу, текстур та шапок.
+     */
+    public HumanoidData getHumanoidData() {
+        return new HumanoidData(
+                this.getRace().name().toLowerCase(java.util.Locale.ROOT),
+                this.isFemale(),
+                this.getProfession(),
+                1
+        );
+    }
+
+    /**
+     * Повертає професію. За замовчуванням "none".
+     * Дочірні класи (або TrackedData) можуть його перевизначати.
+     */
+    public String getProfession() {
+        return "none";
+    }
 
     // ---------- Race / isFemale гетери-сетери ----------
+
     public HumanoidRace getRace() {
         return HumanoidRace.values()[this.dataTracker.get(RACE)];
     }
@@ -105,7 +128,7 @@ public abstract class HumanoidEntity extends MerchantEntity {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
         if (!canBreedWith(partner)) return;
 
-        HumanoidEntity baby = getType().create(serverWorld);
+        HumanoidEntity baby = (HumanoidEntity) getType().create(serverWorld);
         if (baby == null) return;
 
         baby.setRace(this.getRace());
@@ -188,10 +211,10 @@ public abstract class HumanoidEntity extends MerchantEntity {
     // MerchantEntity вже дає тобі getOffers()/setOffers() і меню безкоштовно.
     // Тут просто підвантажуєш офери зі свого окремого дерева товарів по расі,
     // наприклад TradeOfferRegistry.getOffersFor(getRace()).
-    @Override
+    /*@Override
     public void setOffersFromServerData(TradeOfferList offers) {
         super.setOffersFromServerData(offers);
-    }
+    }*/
 
     @Override
     protected void fillRecipes() {

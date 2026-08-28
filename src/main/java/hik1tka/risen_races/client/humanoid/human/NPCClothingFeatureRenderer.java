@@ -15,9 +15,9 @@ public class NPCClothingFeatureRenderer extends FeatureRenderer<HumanEntity, Pla
 
     @Override
     public void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, HumanEntity entity, float limbAngle, float limbDistance, float tickDelta, float animationProgress, float headYaw, float headPitch) {
-        if (entity.isInvisible() || entity.getVillagerData().getProfession() == net.minecraft.village.VillagerProfession.NONE) return;
+        if (entity.isInvisible() || "none".equals(entity.getHumanoidData().getProfession())) return;
 
-        String prof = entity.getProfession();
+        String prof = entity.getHumanoidData().getProfession();
 
         // Перевірка: якщо це фермер, ми припиняємо рендер тут, і фартух не малюється
         if (prof.equals("farmer")) {

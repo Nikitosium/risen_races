@@ -25,7 +25,7 @@ public class FarmerHatFeatureRenderer<T extends HumanEntity, M extends EntityMod
     @Override
     public void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, T entity, float limbAngle, float limbDistance, float tickDelta, float animationProgress, float headYaw, float headPitch) {
         // Малюємо ТІЛЬКИ якщо професія "farmer"
-        if (!"farmer".equals(entity.getProfession()) || entity.isInvisible()) return;
+        if (!"farmer".equals(entity.getHumanoidData().getProfession()) || entity.isInvisible()) return;
 
         matrices.push();
         

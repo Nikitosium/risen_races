@@ -27,7 +27,7 @@ public class FishermanHatFeatureRenderer<T extends HumanEntity, M extends Entity
     @Override
     public void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, T entity, float limbAngle, float limbDistance, float tickDelta, float animationProgress, float headYaw, float headPitch) {
         // Рендеримо ТІЛЬКИ якщо професія "fisherman"
-        if (!"fisherman".equals(entity.getProfession()) || entity.isInvisible()) return;
+        if (!"fisherman".equals(entity.getHumanoidData().getProfession()) || entity.isInvisible()) return;
 
         matrices.push();
 

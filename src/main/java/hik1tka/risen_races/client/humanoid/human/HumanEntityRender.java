@@ -32,7 +32,7 @@ public class HumanEntityRender extends MobEntityRenderer<HumanEntity, PlayerEnti
     @Override
     public Identifier getTexture(HumanEntity entity) {
         int id = entity.getSkinId();
-        String path = entity.getProfession().equals("none")
+        String path = entity.getHumanoidData().getProfession().equals("none")
                 ? "textures/entity/human/nitwit_skins/"
                 : "textures/entity/human/work_skins/";
 
