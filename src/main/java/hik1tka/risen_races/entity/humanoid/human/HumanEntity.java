@@ -1,6 +1,7 @@
 package hik1tka.risen_races.entity.humanoid.human;
 
 import hik1tka.risen_races.RisenRaces;
+import hik1tka.risen_races.entity.humanoid.HumanoidEntity;
 import hik1tka.risen_races.util.IGenderedEntity;
 import hik1tka.risen_races.register.ModSounds;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
@@ -14,14 +15,16 @@ import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
+import net.minecraft.village.TradeOffer;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
-public class HumanEntity extends VillagerEntity implements IGenderedEntity {
+public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     public static final EntityType<HumanEntity> HUMAN = Registry.register(
             Registries.ENTITY_TYPE,
             new Identifier(RisenRaces.MOD_ID, "human"),
@@ -51,6 +54,11 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
     }
 
     @Override
+    protected void afterUsing(TradeOffer offer) {
+
+    }
+
+    @Override
     public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
         boolean isFemale = this.random.nextBoolean();
         this.setFemale(isFemale);
@@ -59,6 +67,11 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
         this.setSkinId(this.random.nextInt(maxSkins));
 
         return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
+    }
+
+    @Override
+    public @Nullable PassiveEntity createChild(ServerWorld world, PassiveEntity entity) {
+        return null;
     }
 
     @Nullable
@@ -101,7 +114,7 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
     }
 
     public String getProfession() {
-        return Registries.VILLAGER_PROFESSION.getId(this.getVillagerData().getProfession()).getPath();
+        return this.getVillagerData().getProfession().id();
     }
 
     public float getScaleModifier() {
@@ -123,11 +136,6 @@ public class HumanEntity extends VillagerEntity implements IGenderedEntity {
         this.dataTracker.set(FEMALE, female);
     }
 
-    // Люди (як і звичайні rynar-жителі) розмножуються повністю ВАНІЛЬНИМ шляхом:
-    // ліжка + їжа в інвентарі + брейн-задача VillagerBreedTask. Ніякого годування
-    // хлібом та ручного пошуку пари тут більше немає — canBreed()/wantsToStartBreeding()
-    // навмисно НЕ перевизначені, тож працює стандартна логіка VillagerEntity.
-    // Стать/раса при цьому враховуються автоматично через VillagerBreedTaskMixin.
     @Override
     public boolean isInLove() {
         return false;
