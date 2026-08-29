@@ -47,6 +47,8 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     protected void initDataTracker() {
         super.initDataTracker();
         this.dataTracker.startTracking(SKIN_ID, 0);
+        // Генератор статі перенесено сюди, локально для людини.
+        this.setFemale(this.random.nextBoolean());
     }
 
     @Override
@@ -59,6 +61,12 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
         this.setRace(hik1tka.risen_races.entity.humanoid.HumanoidRace.HUMAN);
 
         this.rollSkinForGender();
+
+        // ТИМЧАСОВИЙ ДЕБАГ: перевіряємо, що на сервері в момент спавну
+        // isFemale() і skinId справді узгоджені.
+        hik1tka.risen_races.RisenRaces.LOGGER.info(
+                "[DEBUG] HumanEntity spawn: entityId={} isFemale={} skinId={}",
+                this.getId(), this.isFemale(), this.getSkinId());
 
         return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
     }
