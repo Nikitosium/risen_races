@@ -8,6 +8,7 @@ import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.MobEntityRenderer;
 import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
@@ -46,6 +47,19 @@ public class HumanEntityRender extends MobEntityRenderer<HumanEntity, PlayerEnti
                 this.child = false;
             }
         };
+    }
+
+    /**
+     * MobEntityRenderer рендерить через поле this.model, яке інакше назавжди
+     * лишається wideModel (виставленим у super(...) конструктора). Тут
+     * перемикаємо його на slimModel/wideModel щотік, перед фактичним рендером,
+     * інакше slimModel так і лишається невикористаним мертвим кодом.
+     */
+    @Override
+    public void render(HumanEntity entity, float yaw, float tickDelta, MatrixStack matrices,
+                       VertexConsumerProvider vertexConsumers, int light) {
+        this.model = entity.isFemale() ? this.slimModel : this.wideModel;
+        super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
     }
 
     @Override
