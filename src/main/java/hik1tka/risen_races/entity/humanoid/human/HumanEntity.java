@@ -146,6 +146,21 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
         this.dataTracker.set(SKIN_ID, id);
     }
 
+    @Override
+    public java.util.List<hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition> getAvailableProfessions() {
+        return java.util.List.of(
+                new hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition(
+                        "farmer", net.minecraft.world.poi.PointOfInterestTypes.FARMER, 48),
+                new hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition(
+                        "fisherman", net.minecraft.world.poi.PointOfInterestTypes.FISHERMAN, 48),
+                // "builder" - навмисно наш власний id на ванільному POI каменеріза
+                // (стільниці не було своєї - берем готовий MASON POI, прив'язаний
+                // до Blocks.STONECUTTER).
+                new hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition(
+                        "builder", net.minecraft.world.poi.PointOfInterestTypes.MASON, 48)
+        );
+    }
+
     // TODO: getProfession() приберено — getVillagerData() існує лише у VillagerEntity,
     // якого HumanoidEntity не наслідує. Коли зробиш власну систему професій,
     // додай сюди свій метод (наприклад через ще один TrackedData<String>).

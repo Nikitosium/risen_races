@@ -1,6 +1,8 @@
 package hik1tka.risen_races.entity.humanoid;
 
 import hik1tka.risen_races.entity.humanoid.data.HumanoidData;
+import hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition;
+import hik1tka.risen_races.entity.humanoid.goal.AcquireProfessionGoal;
 import hik1tka.risen_races.entity.humanoid.goal.FindMateGoal;
 import hik1tka.risen_races.entity.humanoid.goal.PanicUntilSafeGoal;
 import hik1tka.risen_races.entity.humanoid.goal.RizenPiglinDefenseGoal;
@@ -19,9 +21,14 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.poi.PointOfInterestStorage;
 //import net.minecraft.util.math.random.Random;
 import net.minecraft.village.TradeOfferList;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
+import java.util.List;
 
 //import java.util.EnumSet;
 
@@ -37,6 +44,12 @@ public abstract class HumanoidEntity extends MerchantEntity {
             DataTracker.registerData(HumanoidEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> IS_FEMALE =
             DataTracker.registerData(HumanoidEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<String> PROFESSION =
+            DataTracker.registerData(HumanoidEntity.class, TrackedDataHandlerRegistry.STRING);
+
+    // Позиція робочого місця (POI) - лише на сервері, клієнту не потрібна.
+    @Nullable
+    private BlockPos jobSite;
 
     // кулдаун розмноження, у тіках (щоб не плодились щосекунди)
     private int breedingCooldown = 0;
@@ -60,6 +73,7 @@ public abstract class HumanoidEntity extends MerchantEntity {
         // Дефолт false: конкретна раса сама вирішує, як рандомізувати стать
         // (див., напр., HumanEntity.initDataTracker()).
         this.dataTracker.startTracking(IS_FEMALE, false);
+        this.dataTracker.startTracking(PROFESSION, "none");
     }
     // ---------- HumanoidData (Паспорт для Рендеру) ----------
 
@@ -76,11 +90,37 @@ public abstract class HumanoidEntity extends MerchantEntity {
     }
 
     /**
-     * Повертає професію. За замовчуванням "none".
-     * Дочірні класи (або TrackedData) можуть його перевизначати.
+     * Повертає id поточної професії, "none" якщо безробітний.
      */
     public String getProfession() {
-        return "none";
+        return this.dataTracker.get(PROFESSION);
+    }
+
+    public void setProfession(String professionId) {
+        this.dataTracker.set(PROFESSION, professionId);
+    }
+
+    @Nullable
+    public BlockPos getJobSite() {
+        return jobSite;
+    }
+
+    public void setJobSite(BlockPos pos) {
+        this.jobSite = pos;
+    }
+
+    public void clearJobSite() {
+        this.jobSite = null;
+        setProfession("none");
+    }
+
+    /**
+     * Список професій, доступних цій расі, і POI-типів, які їх дають.
+     * За замовчуванням пусто - раса, яка хоче професії (напр. HumanEntity),
+     * перевизначає це.
+     */
+    public List<ProfessionDefinition> getAvailableProfessions() {
+        return List.of();
     }
 
     // ---------- Race / isFemale гетери-сетери ----------
@@ -175,6 +215,7 @@ public abstract class HumanoidEntity extends MerchantEntity {
         // Розмноження - спільне для всіх рас
         goals.add(1, new PanicUntilSafeGoal(this, 1.3D, 5));
         goals.add(2, new FindMateGoal(this));
+        goals.add(3, new AcquireProfessionGoal(this));
         goals.add(6, new WanderAroundFarGoal(this, 0.6D)); // Блукання по світу
         goals.add(7, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F)); // Дивитися на гравця
         goals.add(8, new LookAroundGoal(this));
@@ -215,6 +256,10 @@ public abstract class HumanoidEntity extends MerchantEntity {
         nbt.putInt("Race", getRace().ordinal());
         nbt.putBoolean("IsFemale", isFemale());
         nbt.putInt("BreedingCooldown", breedingCooldown);
+        nbt.putString("Profession", getProfession());
+        if (jobSite != null) {
+            nbt.put("JobSite", net.minecraft.nbt.NbtHelper.fromBlockPos(jobSite));
+        }
     }
 
     @Override
@@ -226,14 +271,35 @@ public abstract class HumanoidEntity extends MerchantEntity {
         if (nbt.contains("IsFemale")) {
             setFemale(nbt.getBoolean("IsFemale"));
         }
+        if (nbt.contains("Profession")) {
+            setProfession(nbt.getString("Profession"));
+        }
+        if (nbt.contains("JobSite")) {
+            this.jobSite = net.minecraft.nbt.NbtHelper.toBlockPos(nbt.getCompound("JobSite"));
+        }
         this.breedingCooldown = nbt.getInt("BreedingCooldown");
     }
 
     @Override
     public void tick() {
         super.tick();
-        if (!getWorld().isClient() && breedingCooldown > 0) {
-            breedingCooldown--;
+        if (!getWorld().isClient()) {
+            if (breedingCooldown > 0) {
+                breedingCooldown--;
+            }
+            // Раз на секунду перевіряємо, що робоче місце ще існує (не зламане/
+            // не замінене іншим блоком) - інакше звільняємо професію.
+            if (jobSite != null && this.age % 20 == 0
+                    && getWorld() instanceof ServerWorld serverWorld) {
+                boolean stillValid = getAvailableProfessions().stream()
+                        .filter(p -> p.id().equals(getProfession()))
+                        .findFirst()
+                        .map(p -> serverWorld.getPointOfInterestStorage().test(jobSite, p.workstationPredicate()))
+                        .orElse(false);
+                if (!stillValid) {
+                    clearJobSite();
+                }
+            }
         }
     }
 
