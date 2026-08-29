@@ -69,11 +69,6 @@ public class HumanEntityRender extends MobEntityRenderer<HumanEntity, PlayerEnti
                 ? "textures/entity/human/nitwit_skins/"
                 : "textures/entity/human/work_skins/";
 
-        // ТИМЧАСОВИЙ ДЕБАГ: перевіряємо, що бачить КЛІЄНТ (рендер) під час
-        // вибору текстури - і порівнюємо з тим, що логгер писав на сервері.
-        System.out.println("[DEBUG] getTexture: entity=" + entity.getId()
-                + " isFemale=" + entity.isFemale() + " skinId=" + id);
-
         if (entity.isFemale()) {
             switch (id) {
                 case 0: return new Identifier("risen_races", path + "adele.png");

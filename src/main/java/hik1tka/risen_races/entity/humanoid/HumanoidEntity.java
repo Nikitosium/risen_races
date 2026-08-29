@@ -98,14 +98,6 @@ public abstract class HumanoidEntity extends MerchantEntity {
     }
 
     public void setFemale(boolean female) {
-        // ТИМЧАСОВИЙ ДЕБАГ: логуємо КОЖЕН виклик setFemale() з короткою стеком,
-        // щоб зловити момент і місце, де стать перевертається після спавну.
-        hik1tka.risen_races.RisenRaces.LOGGER.info("[DEBUG] setFemale({}) on entityId={}, was={}, at:",
-                female, this.getId(), this.isFemale());
-        StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-        for (int i = 2; i < Math.min(trace.length, 6); i++) {
-            hik1tka.risen_races.RisenRaces.LOGGER.info("    at {}", trace[i]);
-        }
         this.dataTracker.set(IS_FEMALE, female);
     }
 

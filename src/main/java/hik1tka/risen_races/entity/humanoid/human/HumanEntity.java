@@ -47,8 +47,13 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     protected void initDataTracker() {
         super.initDataTracker();
         this.dataTracker.startTracking(SKIN_ID, 0);
-        // Генератор статі перенесено сюди, локально для людини.
-        this.setFemale(this.random.nextBoolean());
+        // Стать НЕ рандомізуємо тут - initDataTracker() виконується і на
+        // клієнті (для кожної локальної "примарної" копії ентіті), а не
+        // тільки на сервері. Рандомний setFemale() тут створював стан, коли
+        // клієнтська копія на мить мала СВОЄ власне випадкове isFemale,
+        // не синхронізоване з сервером ще - і якщо звук встигав програтись
+        // саме в цю мить, лунала не та стать. Реальна стать вирішується
+        // один раз, тільки на сервері, у initialize() нижче.
     }
 
     @Override
@@ -60,13 +65,10 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
         this.setRace(hik1tka.risen_races.entity.humanoid.HumanoidRace.HUMAN);
 
+        // Стать вирішується тут, а не в initDataTracker() - цей метод
+        // гарантовано виконується лише на сервері й лише один раз за спавн.
+        this.setFemale(this.random.nextBoolean());
         this.rollSkinForGender();
-
-        // ТИМЧАСОВИЙ ДЕБАГ: перевіряємо, що на сервері в момент спавну
-        // isFemale() і skinId справді узгоджені.
-        hik1tka.risen_races.RisenRaces.LOGGER.info(
-                "[DEBUG] HumanEntity spawn: entityId={} isFemale={} skinId={}",
-                this.getId(), this.isFemale(), this.getSkinId());
 
         return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
     }
