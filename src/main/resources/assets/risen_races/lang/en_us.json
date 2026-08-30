@@ -1,5 +1,9 @@
 {
   "entity.risen_races.human": "Human",
+  "entity.risen_races.risen_piglin": "Risen Piglin",
+  "entity.risen_races.rynar": "Rynar",
   "item.risen_races.human_spawn_egg": "Human Spawn Egg",
+  "item.risen_races.risen_piglin_spawn_egg": "Risen Piglin Spawn Egg",
+  "item.risen_races.rynar_spawn_egg": "Rynar Spawn Egg",
   "entity.minecraft.villager": "Rynar"
 }

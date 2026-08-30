@@ -15,4 +15,7 @@ public class ModModelLayers {
             new EntityModelLayer(new Identifier("risen_races", "rynar_male"), "main");
     public static final EntityModelLayer RYNAR_FEMALE =
             new EntityModelLayer(new Identifier("risen_races", "rynar_female"), "main");
+
+    public static final EntityModelLayer RISEN_PIGLIN_FEMALE =
+            new EntityModelLayer(new Identifier("risen_races", "risen_piglin_female"), "main");
 }
