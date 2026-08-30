@@ -10,4 +10,9 @@ public class ModModelLayers {
 
     public static final EntityModelLayer FISHERMAN_HAT =
             new EntityModelLayer(new Identifier("risen_races", "fisherman_hat"), "main");
+
+    public static final EntityModelLayer RYNAR_MALE =
+            new EntityModelLayer(new Identifier("risen_races", "rynar_male"), "main");
+    public static final EntityModelLayer RYNAR_FEMALE =
+            new EntityModelLayer(new Identifier("risen_races", "rynar_female"), "main");
 }
