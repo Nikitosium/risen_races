@@ -3,6 +3,7 @@ package hik1tka.risen_races.entity.humanoid;
 import hik1tka.risen_races.entity.humanoid.data.HumanoidData;
 import hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition;
 import hik1tka.risen_races.entity.humanoid.goal.AcquireProfessionGoal;
+import hik1tka.risen_races.entity.humanoid.goal.ConditionalGoal;
 import hik1tka.risen_races.entity.humanoid.goal.FindMateGoal;
 import hik1tka.risen_races.entity.humanoid.goal.PanicUntilSafeGoal;
 import hik1tka.risen_races.entity.humanoid.goal.RizenPiglinDefenseGoal;
@@ -18,6 +19,11 @@ import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.MerchantEntity;
 //import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.Inventories;
+import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvent;
@@ -29,6 +35,7 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
+import java.util.Map;
 
 //import java.util.EnumSet;
 
@@ -47,6 +54,23 @@ public abstract class HumanoidEntity extends MerchantEntity {
     private static final TrackedData<String> PROFESSION =
             DataTracker.registerData(HumanoidEntity.class, TrackedDataHandlerRegistry.STRING);
 
+    // --- Інвентар: як у ванільного жителя (8 слотів, SimpleInventory) ---
+    // VillagerEntity має цей інвентар сам по собі, але HumanoidEntity успадковується
+    // від MerchantEntity (лише торгівля, без інвентаря) - тому додаємо власний.
+    public static final int INVENTORY_SIZE = 8;
+    private final SimpleInventory inventory = new SimpleInventory(INVENTORY_SIZE);
+
+    // --- Харчі, які рахуються для умови розмноження, і скільки "балів" кожен дає ---
+    // Ті самі значення, що й у ванільного VillagerEntity.canBreed().
+    private static final Map<Item, Integer> BREEDING_FOOD_VALUES = Map.of(
+            Items.BREAD, 4,
+            Items.POTATO, 1,
+            Items.CARROT, 1,
+            Items.BEETROOT, 1
+    );
+    // Скільки сумарних балів їжі потрібно в інвентарі, щоб пара могла розмножитись.
+    private static final int BREEDING_FOOD_REQUIREMENT = 12;
+
     // Позиція робочого місця (POI) - лише на сервері, клієнту не потрібна.
     @Nullable
     private BlockPos jobSite;
@@ -63,7 +87,12 @@ public abstract class HumanoidEntity extends MerchantEntity {
         return MerchantEntity.createMobAttributes()
                 .add(EntityAttributes.GENERIC_MAX_HEALTH, 20.0D)
                 .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.27D)
-                .add(EntityAttributes.GENERIC_FOLLOW_RANGE, 48.0D);
+                .add(EntityAttributes.GENERIC_FOLLOW_RANGE, 48.0D)
+                // MerchantEntity (жителі) цього не має - вони не б'ються.
+                // Потрібен для MeleeAttackGoal/tryAttack (FIGHT-раси), інакше
+                // LivingEntity.getAttributeValue(GENERIC_ATTACK_DAMAGE) кидає
+                // IllegalArgumentException ("Can't find attribute") і валить сервер.
+                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 3.0D);
     }
 
     @Override
@@ -123,6 +152,55 @@ public abstract class HumanoidEntity extends MerchantEntity {
         return List.of();
     }
 
+    // ---------- Інвентар ----------
+
+    public SimpleInventory getInventory() {
+        return this.inventory;
+    }
+
+    /**
+     * Сумарна "їжева цінність" інвентаря за BREEDING_FOOD_VALUES (як у
+     * ванільного жителя: хліб=4, картопля/морква/буряк=1 кожен).
+     */
+    public int getFoodValueInInventory() {
+        int total = 0;
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+            Integer value = BREEDING_FOOD_VALUES.get(stack.getItem());
+            if (value != null) {
+                total += value * stack.getCount();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Чи достатньо їжі в інвентарі, щоб цей ентіті міг брати участь у
+     * розмноженні (BREEDING_FOOD_REQUIREMENT балів).
+     */
+    public boolean hasEnoughFoodToBreed() {
+        return getFoodValueInInventory() >= BREEDING_FOOD_REQUIREMENT;
+    }
+
+    /**
+     * Списує з інвентаря їжу на суму BREEDING_FOOD_REQUIREMENT балів.
+     * Викликається під час breedWith() для обох батьків.
+     */
+    private void consumeBreedingFood() {
+        int remaining = BREEDING_FOOD_REQUIREMENT;
+        for (int i = 0; i < inventory.size() && remaining > 0; i++) {
+            ItemStack stack = inventory.getStack(i);
+            Integer value = BREEDING_FOOD_VALUES.get(stack.getItem());
+            if (value == null || stack.isEmpty()) {
+                continue;
+            }
+            while (remaining > 0 && !stack.isEmpty()) {
+                stack.decrement(1);
+                remaining -= value;
+            }
+        }
+    }
+
     // ---------- Race / isFemale гетери-сетери ----------
 
     public HumanoidRace getRace() {
@@ -163,12 +241,14 @@ public abstract class HumanoidEntity extends MerchantEntity {
      * - однакова раса (RaceId збігається)
      * - протилежна стать (isFemale відрізняється)
      * - обидва вже можуть розмножуватись (кулдаун пройшов)
+     * - в обох в інвентарі достатньо їжі (BREEDING_FOOD_REQUIREMENT балів)
      */
     public boolean canBreedWith(HumanoidEntity other) {
         if (other == this) return false;
         if (this.getRace() != other.getRace()) return false;
         if (this.isFemale() == other.isFemale()) return false;
-        return this.isBreedingReady() && other.isBreedingReady();
+        if (!this.isBreedingReady() || !other.isBreedingReady()) return false;
+        return this.hasEnoughFoodToBreed() && other.hasEnoughFoodToBreed();
     }
 
     /**
@@ -193,6 +273,10 @@ public abstract class HumanoidEntity extends MerchantEntity {
         onBabyCreated(baby);
         serverWorld.spawnEntityAndPassengers(baby);
 
+        // З'їдають витрачену на розмноження їжу з обох інвентарів.
+        this.consumeBreedingFood();
+        partner.consumeBreedingFood();
+
         this.resetBreedingCooldown();
         partner.resetBreedingCooldown();
     }
@@ -207,30 +291,62 @@ public abstract class HumanoidEntity extends MerchantEntity {
     }
 
     // ---------- Goals ----------
+
+    /**
+     * Перевіряються щотика через ConditionalGoal (а не один раз при
+     * побудові goalSelector) - див. коментар в initGoals().
+     */
+    private boolean isFleeRace() {
+        return switch (getRace().getDangerBehavior()) {
+            case FLEE -> true;
+            case FIGHT -> false;
+        };
+    }
+
+    private boolean isFightRace() {
+        return !isFleeRace();
+    }
+
     @Override
     protected void initGoals() {
         super.initGoals();
         GoalSelector goals = this.goalSelector;
 
         // Розмноження - спільне для всіх рас
-        goals.add(1, new PanicUntilSafeGoal(this, 1.3D, 5));
         goals.add(2, new FindMateGoal(this));
         goals.add(3, new AcquireProfessionGoal(this));
         goals.add(6, new WanderAroundFarGoal(this, 0.6D)); // Блукання по світу
         goals.add(7, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F)); // Дивитися на гравця
         goals.add(8, new LookAroundGoal(this));
 
-        switch (getRace().getDangerBehavior()) {
-            case FLEE -> {
-                // Ванільний FleeEntityGoal + список небезпечних мобів.
-                // TODO: заміни HostileEntity.class на власний предикат/список,
-                // якщо треба тікати не від усіх ворожих мобів, а від конкретного списку.
-                goals.add(1, new FleeEntityGoal<>(this, HostileEntity.class, 8.0F, 1.0D, 1.2D));
-            }
-            case FIGHT -> {
-                goals.add(1, new RizenPiglinDefenseGoal(this));
-            }
-        }
+        // ВАЖЛИВО: initGoals() викликається з конструктора MobEntity, а
+        // setRace(...) виставляється пізніше (в initialize() при спавні,
+        // або в readCustomDataFromNbt() при завантаженні). Тому вирішувати
+        // flee-vs-fight один раз тут через switch не можна - на цей момент
+        // getRace() ще повертає дефолт (HUMAN), і поведінка "заморожується"
+        // на все життя ентіті. Замість цього реєструємо ОБИДВІ гілки
+        // завжди, а яка з них активна - ConditionalGoal перевіряє щотика
+        // через актуальний getRace().getDangerBehavior().
+
+        goals.add(1, new ConditionalGoal(
+                new PanicUntilSafeGoal(this, 1.3D, 5),
+                this::isFleeRace));
+        // Ванільний FleeEntityGoal + список небезпечних мобів.
+        // TODO: заміни HostileEntity.class на власний предикат/список,
+        // якщо треба тікати не від усіх ворожих мобів, а від конкретного списку.
+        goals.add(1, new ConditionalGoal(
+                new FleeEntityGoal<>(this, HostileEntity.class, 8.0F, 1.0D, 1.2D),
+                this::isFleeRace));
+
+        // Пріоритет 1: лише вибір/виставлення цілі (Control.TARGET).
+        goals.add(1, new ConditionalGoal(
+                new RizenPiglinDefenseGoal(this),
+                this::isFightRace));
+        // Пріоритет 2: фактична атака (Control.MOVE/LOOK) - без цього
+        // ціль виставляється, а ніхто фізично не б'ється.
+        goals.add(2, new ConditionalGoal(
+                new MeleeAttackGoal(this, 1.2D, false),
+                this::isFightRace));
     }
 
     // ---------- Звуки по расі ----------
@@ -260,6 +376,15 @@ public abstract class HumanoidEntity extends MerchantEntity {
         if (jobSite != null) {
             nbt.put("JobSite", net.minecraft.nbt.NbtHelper.fromBlockPos(jobSite));
         }
+
+        net.minecraft.util.collection.DefaultedList<ItemStack> items =
+                net.minecraft.util.collection.DefaultedList.ofSize(INVENTORY_SIZE, ItemStack.EMPTY);
+        for (int i = 0; i < INVENTORY_SIZE; i++) {
+            items.set(i, inventory.getStack(i));
+        }
+        NbtCompound inventoryNbt = new NbtCompound();
+        Inventories.writeNbt(inventoryNbt, items);
+        nbt.put("HumanoidInventory", inventoryNbt);
     }
 
     @Override
@@ -278,6 +403,15 @@ public abstract class HumanoidEntity extends MerchantEntity {
             this.jobSite = net.minecraft.nbt.NbtHelper.toBlockPos(nbt.getCompound("JobSite"));
         }
         this.breedingCooldown = nbt.getInt("BreedingCooldown");
+
+        if (nbt.contains("HumanoidInventory")) {
+            net.minecraft.util.collection.DefaultedList<ItemStack> items =
+                    net.minecraft.util.collection.DefaultedList.ofSize(INVENTORY_SIZE, ItemStack.EMPTY);
+            Inventories.readNbt(nbt.getCompound("HumanoidInventory"), items);
+            for (int i = 0; i < items.size(); i++) {
+                inventory.setStack(i, items.get(i));
+            }
+        }
     }
 
     @Override
