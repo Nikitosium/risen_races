@@ -6,6 +6,7 @@ import hik1tka.risen_races.entity.humanoid.goal.AcquireProfessionGoal;
 import hik1tka.risen_races.entity.humanoid.goal.ConditionalGoal;
 import hik1tka.risen_races.entity.humanoid.goal.FindMateGoal;
 import hik1tka.risen_races.entity.humanoid.goal.PanicUntilSafeGoal;
+import hik1tka.risen_races.entity.humanoid.goal.PickUpFoodGoal;
 import hik1tka.risen_races.entity.humanoid.goal.RizenPiglinDefenseGoal;
 import net.minecraft.entity.EntityType;
 //import net.minecraft.entity.LivingEntity;
@@ -60,16 +61,46 @@ public abstract class HumanoidEntity extends MerchantEntity {
     public static final int INVENTORY_SIZE = 8;
     private final SimpleInventory inventory = new SimpleInventory(INVENTORY_SIZE);
 
-    // --- Харчі, які рахуються для умови розмноження, і скільки "балів" кожен дає ---
-    // Ті самі значення, що й у ванільного VillagerEntity.canBreed().
-    private static final Map<Item, Integer> BREEDING_FOOD_VALUES = Map.of(
-            Items.BREAD, 4,
-            Items.POTATO, 1,
-            Items.CARROT, 1,
-            Items.BEETROOT, 1
+    /**
+     * points  - скільки "балів" дає одиниця предмета в BREEDING_FOOD_VALUES
+     * babies  - скільки дитинчат народжується, якщо саме ЦЯ їжа була
+     *           використана (списана) під час розмноження
+     */
+    private record FoodInfo(int points, int babies) {}
+
+    // --- Харчі, які рахуються для умови розмноження ---
+    // TODO: "золота їжа" в завданні була неоднозначна - тут це GOLDEN_CARROT
+    // і звичайне GOLDEN_APPLE (не зачароване). Якщо малось на увазі щось
+    // інше (напр. Glistering Melon Slice - вона не їстівна у ваніллі і не
+    // підходить), просто заміни/додай запис у мапі нижче.
+    private static final Map<Item, FoodInfo> BREEDING_FOOD_VALUES = Map.ofEntries(
+            Map.entry(Items.BREAD, new FoodInfo(4, 1)),
+            Map.entry(Items.POTATO, new FoodInfo(1, 1)),
+            Map.entry(Items.CARROT, new FoodInfo(1, 1)),
+            Map.entry(Items.BEETROOT, new FoodInfo(1, 1)),
+            Map.entry(Items.CHICKEN, new FoodInfo(6, 1)),           // курка сира
+            Map.entry(Items.COOKED_CHICKEN, new FoodInfo(12, 1)),   // курка смажена
+            Map.entry(Items.BEEF, new FoodInfo(12, 1)),             // яловичина сира
+            Map.entry(Items.COOKED_BEEF, new FoodInfo(24, 2)),      // яловичина смажена -> 2 дитинки
+            Map.entry(Items.PORKCHOP, new FoodInfo(12, 1)),         // свинина сира
+            Map.entry(Items.COOKED_PORKCHOP, new FoodInfo(24, 2)),  // свинина смажена -> 2 дитинки
+            Map.entry(Items.PUMPKIN_PIE, new FoodInfo(12, 1)),      // гарбузовий пиріг
+            Map.entry(Items.GOLDEN_CARROT, new FoodInfo(32, 3)),    // золота їжа -> 3 дитинки
+            Map.entry(Items.GOLDEN_APPLE, new FoodInfo(32, 3)),     // золота їжа -> 3 дитинки
+            Map.entry(Items.ENCHANTED_GOLDEN_APPLE, new FoodInfo(48, 4)) // яблуко нотча -> 4 дитинки
     );
+
+    /**
+     * Чи цей предмет взагалі рахується як "їжа для розмноження"
+     * (використовується PickUpFoodGoal, щоб фільтрувати ItemEntity на підбір).
+     */
+    public static boolean isBreedingFood(Item item) {
+        return BREEDING_FOOD_VALUES.containsKey(item);
+    }
+
     // Скільки сумарних балів їжі потрібно в інвентарі, щоб пара могла розмножитись.
-    private static final int BREEDING_FOOD_REQUIREMENT = 12;
+    // Публічне, бо потрібне й PickUpFoodGoal (інший пакет) як орієнтир "досить назбирали".
+    public static final int BREEDING_FOOD_REQUIREMENT = 12;
 
     // Позиція робочого місця (POI) - лише на сервері, клієнту не потрібна.
     @Nullable
@@ -158,17 +189,87 @@ public abstract class HumanoidEntity extends MerchantEntity {
         return this.inventory;
     }
 
+    // ---------- Підбір їжі з землі ----------
+    // Разом з PickUpFoodGoal (goal-пакет): той лише підводить ентіті впритул
+    // до предмета, а сам факт "взяти в руки" робить вбудований цикл
+    // MobEntity.tick() -> loot(ItemEntity), який спрацьовує, коли
+    // canPickUpLoot() == true і предмет опиняється в радіусі ~1 блоку
+    // (саме туди й веде PickUpFoodGoal). sendPickup(...) всередині loot()
+    // сам відтворює ванільний звук підбору предмета - додатково нічого
+    // програвати не треба.
+
+    @Override
+    public boolean canPickUpLoot() {
+        return true;
+    }
+
+    @Override
+    public boolean canGather(ItemStack stack) {
+        // Підбираємо лише те, що рахується як їжа для розмноження, і лише
+        // поки в інвентарі справді є вільне місце під цей стак.
+        if (!isBreedingFood(stack.getItem())) {
+            return false;
+        }
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack slot = inventory.getStack(i);
+            if (slot.isEmpty()) {
+                return true;
+            }
+            if (ItemStack.canCombine(slot, stack) && slot.getCount() < slot.getMaxCount()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    protected void loot(net.minecraft.entity.ItemEntity item) {
+        // Перевизначаємо повністю замість super.loot(...): ванільна
+        // реалізація кладе предмет в екіпіровку (зброя/броня), а нам треба
+        // саме в inventory. TODO: якщо в твоєму мапінгу Yarn сигнатура
+        // loot()/canGather() відрізняється - звір з декомпільованим
+        // MobEntity в IDE і поправ назви методів тут.
+        ItemStack stack = item.getStack();
+        if (!canGather(stack)) {
+            return;
+        }
+        int pickedUp = 0;
+        for (int i = 0; i < inventory.size() && !stack.isEmpty(); i++) {
+            ItemStack slot = inventory.getStack(i);
+            if (slot.isEmpty()) {
+                int amount = stack.getCount();
+                inventory.setStack(i, stack.split(amount));
+                pickedUp += amount;
+            } else if (ItemStack.canCombine(slot, stack)) {
+                int space = slot.getMaxCount() - slot.getCount();
+                int amount = Math.min(space, stack.getCount());
+                if (amount > 0) {
+                    slot.increment(amount);
+                    stack.decrement(amount);
+                    pickedUp += amount;
+                }
+            }
+        }
+        if (pickedUp > 0) {
+            this.sendPickup(item, pickedUp);
+        }
+        if (stack.isEmpty()) {
+            item.discard();
+        } else {
+            item.setStack(stack);
+        }
+    }
+
     /**
-     * Сумарна "їжева цінність" інвентаря за BREEDING_FOOD_VALUES (як у
-     * ванільного жителя: хліб=4, картопля/морква/буряк=1 кожен).
+     * Сумарна "їжева цінність" інвентаря за BREEDING_FOOD_VALUES.
      */
     public int getFoodValueInInventory() {
         int total = 0;
         for (int i = 0; i < inventory.size(); i++) {
             ItemStack stack = inventory.getStack(i);
-            Integer value = BREEDING_FOOD_VALUES.get(stack.getItem());
-            if (value != null) {
-                total += value * stack.getCount();
+            FoodInfo info = BREEDING_FOOD_VALUES.get(stack.getItem());
+            if (info != null) {
+                total += info.points() * stack.getCount();
             }
         }
         return total;
@@ -183,22 +284,27 @@ public abstract class HumanoidEntity extends MerchantEntity {
     }
 
     /**
-     * Списує з інвентаря їжу на суму BREEDING_FOOD_REQUIREMENT балів.
+     * Списує з інвентаря їжу на суму BREEDING_FOOD_REQUIREMENT балів і
+     * повертає, скільки дитинчат "заслуговує" на цю комбінацію їжі -
+     * максимум серед babies() усіх фактично списаних предметів (мінімум 1).
      * Викликається під час breedWith() для обох батьків.
      */
-    private void consumeBreedingFood() {
+    private int consumeBreedingFoodAndGetBabies() {
         int remaining = BREEDING_FOOD_REQUIREMENT;
+        int bestBabies = 1;
         for (int i = 0; i < inventory.size() && remaining > 0; i++) {
             ItemStack stack = inventory.getStack(i);
-            Integer value = BREEDING_FOOD_VALUES.get(stack.getItem());
-            if (value == null || stack.isEmpty()) {
+            FoodInfo info = BREEDING_FOOD_VALUES.get(stack.getItem());
+            if (info == null || stack.isEmpty()) {
                 continue;
             }
             while (remaining > 0 && !stack.isEmpty()) {
                 stack.decrement(1);
-                remaining -= value;
+                remaining -= info.points();
+                bestBabies = Math.max(bestBabies, info.babies());
             }
         }
+        return bestBabies;
     }
 
     // ---------- Race / isFemale гетери-сетери ----------
@@ -253,29 +359,38 @@ public abstract class HumanoidEntity extends MerchantEntity {
 
     /**
      * Викликається, коли пара знайдена і умови зустрілись (FindMateGoal).
-     * Тут створюєш дитину, копіюєш расу, рандомізуєш стать і т.п.
+     * Списує їжу в обох, і залежно від того, яка саме їжа пішла в хід,
+     * народжує 1-4 дитинчат (FoodInfo.babies() в BREEDING_FOOD_VALUES).
      */
     public void breedWith(HumanoidEntity partner) {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
         if (!canBreedWith(partner)) return;
 
-        HumanoidEntity baby = (HumanoidEntity) getType().create(serverWorld);
-        if (baby == null) return;
+        // Списуємо їжу ДО спавну дітей - і водночас дізнаємось, скільки
+        // дитинчат "заслужила" ця їжа (беремо кращий результат з двох батьків).
+        int babiesFromThis = this.consumeBreedingFoodAndGetBabies();
+        int babiesFromPartner = partner.consumeBreedingFoodAndGetBabies();
+        int babyCount = Math.max(babiesFromThis, babiesFromPartner);
 
-        baby.setRace(this.getRace());
-        baby.setFemale(this.random.nextBoolean());
-        // Робимо ентіті дитиною: без цього isBaby() == false і getScaleFactor()
-        // (в HumanEntity) ніколи не застосовує зменшений масштаб.
-        baby.setBreedingAge(-24000);
-        baby.refreshPositionAndAngles(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
-        // Даємо расі шанс довизначити щось специфічне для щойно народженої дитини
-        // (наприклад, скін по статі - див. HumanEntity.onBabyCreated).
-        onBabyCreated(baby);
-        serverWorld.spawnEntityAndPassengers(baby);
+        for (int i = 0; i < babyCount; i++) {
+            HumanoidEntity baby = (HumanoidEntity) getType().create(serverWorld);
+            if (baby == null) continue;
 
-        // З'їдають витрачену на розмноження їжу з обох інвентарів.
-        this.consumeBreedingFood();
-        partner.consumeBreedingFood();
+            baby.setRace(this.getRace());
+            baby.setFemale(this.random.nextBoolean());
+            // Робимо ентіті дитиною: без цього isBaby() == false і getScaleFactor()
+            // (в HumanEntity) ніколи не застосовує зменшений масштаб.
+            baby.setBreedingAge(-24000);
+            // Невеликий розкид позиції, щоб кілька дитинчат не спавнились
+            // рівно в одній точці одне на одному.
+            double offsetX = (this.random.nextDouble() - 0.5D) * 1.5D;
+            double offsetZ = (this.random.nextDouble() - 0.5D) * 1.5D;
+            baby.refreshPositionAndAngles(this.getX() + offsetX, this.getY(), this.getZ() + offsetZ, 0.0F, 0.0F);
+            // Даємо расі шанс довизначити щось специфічне для щойно народженої дитини
+            // (наприклад, скін по статі - див. HumanEntity.onBabyCreated).
+            onBabyCreated(baby);
+            serverWorld.spawnEntityAndPassengers(baby);
+        }
 
         this.resetBreedingCooldown();
         partner.resetBreedingCooldown();
@@ -314,6 +429,12 @@ public abstract class HumanoidEntity extends MerchantEntity {
 
         // Розмноження - спільне для всіх рас
         goals.add(2, new FindMateGoal(this));
+        // Той самий пріоритет, що й FindMateGoal: реально конкурують за
+        // MOVE лише тоді, коли обидва можуть стартувати, а можуть вони
+        // взаємовиключно - FindMateGoal шукає партнера через canBreedWith()
+        // (потребує hasEnoughFoodToBreed()), PickUpFoodGoal сам вимикається,
+        // щойно їжі досить (див. його canStart()).
+        goals.add(2, new PickUpFoodGoal(this));
         goals.add(3, new AcquireProfessionGoal(this));
         goals.add(6, new WanderAroundFarGoal(this, 0.6D)); // Блукання по світу
         goals.add(7, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F)); // Дивитися на гравця
