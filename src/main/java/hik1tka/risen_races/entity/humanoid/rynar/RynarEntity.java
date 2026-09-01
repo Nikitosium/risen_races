@@ -78,15 +78,13 @@ public class RynarEntity extends HumanoidEntity implements IGenderedEntity {
     @Override
     public List<ProfessionDefinition> getAvailableProfessions() {
         return List.of(
-                new ProfessionDefinition("mason", net.minecraft.world.poi.PointOfInterestTypes.MASON, 48),
-                new ProfessionDefinition("toolsmith", net.minecraft.world.poi.PointOfInterestTypes.TOOLSMITH, 48),
-                new ProfessionDefinition("weaponsmith", net.minecraft.world.poi.PointOfInterestTypes.WEAPONSMITH, 48),
-                new ProfessionDefinition("armorer", net.minecraft.world.poi.PointOfInterestTypes.ARMORER, 48)
-                // TODO: "хранитель знань" (рівень від книжкових полиць) - окрема
-                //   механіка, ще не готова, підключити коли буде.
-                // TODO: лучник-торговець (FLETCHER, ліміт 1) і чарівник-боєць
-                //   (ENCHANTING_TABLE_POI, ліміт 5) - чекають на узагальнений
-                //   capped-механізм у profession_plus/, поки не додаю сюди.
+                new ProfessionDefinition("farmer", net.minecraft.world.poi.PointOfInterestTypes.FARMER, 48),
+                new ProfessionDefinition("butcher", net.minecraft.world.poi.PointOfInterestTypes.BUTCHER, 48),
+                new ProfessionDefinition("shepherd", net.minecraft.world.poi.PointOfInterestTypes.SHEPHERD, 48),
+                new ProfessionDefinition("fisherman", net.minecraft.world.poi.PointOfInterestTypes.FISHERMAN, 48),
+                new ProfessionDefinition("leatherworker", net.minecraft.world.poi.PointOfInterestTypes.LEATHERWORKER, 48),
+                new ProfessionDefinition("cleric", net.minecraft.world.poi.PointOfInterestTypes.CLERIC, 48),
+                new ProfessionDefinition("cartographer", net.minecraft.world.poi.PointOfInterestTypes.CARTOGRAPHER, 48)
         );
     }
 

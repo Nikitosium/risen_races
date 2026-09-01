@@ -2,6 +2,7 @@ package hik1tka.risen_races.entity.humanoid.human;
 
 import hik1tka.risen_races.RisenRaces;
 import hik1tka.risen_races.entity.humanoid.HumanoidEntity;
+import hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition;
 import hik1tka.risen_races.util.IGenderedEntity;
 import hik1tka.risen_races.register.ModSounds;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
@@ -149,13 +150,14 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     @Override
     public java.util.List<hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition> getAvailableProfessions() {
         return java.util.List.of(
-                new hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition(
-                        "farmer", net.minecraft.world.poi.PointOfInterestTypes.FARMER, 48),
-                new hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition(
-                        "fisherman", net.minecraft.world.poi.PointOfInterestTypes.FISHERMAN, 48),
-                // "builder" - навмисно наш власний id на ванільному POI каменеріза
-                // (стільниці не було своєї - берем готовий MASON POI, прив'язаний
-                // до Blocks.STONECUTTER).
+                new ProfessionDefinition("farmer", net.minecraft.world.poi.PointOfInterestTypes.FARMER, 48),
+                new ProfessionDefinition("butcher", net.minecraft.world.poi.PointOfInterestTypes.BUTCHER, 48),
+                new ProfessionDefinition("shepherd", net.minecraft.world.poi.PointOfInterestTypes.SHEPHERD, 48),
+                new ProfessionDefinition("fisherman", net.minecraft.world.poi.PointOfInterestTypes.FISHERMAN, 48),
+                new ProfessionDefinition("leatherworker", net.minecraft.world.poi.PointOfInterestTypes.LEATHERWORKER, 48),
+                new ProfessionDefinition("cleric", net.minecraft.world.poi.PointOfInterestTypes.CLERIC, 48),
+                new ProfessionDefinition("cartographer", net.minecraft.world.poi.PointOfInterestTypes.CARTOGRAPHER, 48),
+
                 new hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition(
                         "builder", net.minecraft.world.poi.PointOfInterestTypes.MASON, 48)
         );

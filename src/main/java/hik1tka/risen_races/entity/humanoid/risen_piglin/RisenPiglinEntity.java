@@ -67,12 +67,13 @@ public class RisenPiglinEntity extends HumanoidEntity implements IGenderedEntity
     @Override
     public List<ProfessionDefinition> getAvailableProfessions() {
         return List.of(
-                new ProfessionDefinition("mason", net.minecraft.world.poi.PointOfInterestTypes.MASON, 48)
-                // TODO: кастомний коваль на TOOLSMITH+WEAPONSMITH+ARMORER одразу
-                //   (один ProfessionDefinition з predicate на всі три POI) -
-                //   потребує своєї trade/замовлення-логіки, ще не готова.
-                // TODO: важка піхота (ANVIL_POI, ліміт 3) - чекає на
-                //   узагальнений capped-механізм у profession_plus/.
+                new ProfessionDefinition("farmer", net.minecraft.world.poi.PointOfInterestTypes.FARMER, 48),
+                new ProfessionDefinition("butcher", net.minecraft.world.poi.PointOfInterestTypes.BUTCHER, 48),
+                new ProfessionDefinition("shepherd", net.minecraft.world.poi.PointOfInterestTypes.SHEPHERD, 48),
+                new ProfessionDefinition("fisherman", net.minecraft.world.poi.PointOfInterestTypes.FISHERMAN, 48),
+                new ProfessionDefinition("leatherworker", net.minecraft.world.poi.PointOfInterestTypes.LEATHERWORKER, 48),
+                new ProfessionDefinition("cleric", net.minecraft.world.poi.PointOfInterestTypes.CLERIC, 48),
+                new ProfessionDefinition("cartographer", net.minecraft.world.poi.PointOfInterestTypes.CARTOGRAPHER, 48)
         );
     }
 
