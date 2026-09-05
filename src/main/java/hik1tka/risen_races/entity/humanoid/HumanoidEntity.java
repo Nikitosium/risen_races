@@ -307,6 +307,16 @@ public abstract class HumanoidEntity extends MerchantEntity {
         return bestBabies;
     }
 
+    /**
+     * Вертикальний зсув спільних шапок-моделей (Farmer/FishermanHat) для цієї
+     * раси, у блоках (1 піксель = 1/16 = 0.0625F). Від'ємне значення - вгору.
+     * За замовчуванням 0 - раса, чия голова геометрично відрізняється від
+     * людської (напр. RisenPiglinEntity), перевизначає це.
+     */
+    public float getHatYOffset() {
+        return 0.0F;
+    }
+
     // ---------- Race / isFemale гетери-сетери ----------
 
     public HumanoidRace getRace() {

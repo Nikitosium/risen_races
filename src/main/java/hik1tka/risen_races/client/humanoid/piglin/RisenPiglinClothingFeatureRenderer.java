@@ -28,6 +28,12 @@ public class RisenPiglinClothingFeatureRenderer extends FeatureRenderer<RisenPig
         String prof = entity.getProfession();
         if (entity.isInvisible() || "none".equals(prof)) return;
 
+        // farmer/fisherman тепер малюються через спільні
+        // FarmerHatFeatureRenderer/FishermanHatFeatureRenderer (ті самі моделі
+        // шапок, що й у людини) - не текстурою фартуха, тому пропускаємо тут,
+        // інакше буде подвійний рендер.
+        if ("farmer".equals(prof) || "fisherman".equals(prof)) return;
+
         // TODO: якщо для якоїсь професії текстури фартуха ще нема - як у
         // Human з "farmer", додай сюди такий самий early return.
         Identifier professionId = new Identifier("risen_races",

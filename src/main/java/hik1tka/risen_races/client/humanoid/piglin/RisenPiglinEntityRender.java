@@ -1,5 +1,9 @@
 package hik1tka.risen_races.client.humanoid.piglin;
 
+import hik1tka.risen_races.client.humanoid.human.FarmerHatFeatureRenderer;
+import hik1tka.risen_races.client.humanoid.human.FishermanHatFeatureRenderer;
+import hik1tka.risen_races.client.humanoid.human.model.profession.hat.FarmerHatModel;
+import hik1tka.risen_races.client.humanoid.human.model.profession.hat.FishermanHatModel;
 import hik1tka.risen_races.client.humanoid.piglin.model.RisenFemalePiglinModel;
 import hik1tka.risen_races.entity.humanoid.risen_piglin.RisenPiglinEntity;
 import hik1tka.risen_races.register.ModModelLayers;
@@ -36,6 +40,11 @@ public class RisenPiglinEntityRender extends MobEntityRenderer<RisenPiglinEntity
         this.maleModel = new PiglinEntityModel<>(context.getPart(EntityModelLayers.PIGLIN));
         this.femaleModel = new RisenFemalePiglinModel<>(context.getPart(ModModelLayers.RISEN_PIGLIN_FEMALE));
         this.addFeature(new RisenPiglinClothingFeatureRenderer(this));
+
+        // Ті самі моделі шапок, що й у людини (FarmerHatModel/FishermanHatModel
+        // самі по собі узагальнені по Entity - їх не треба дублювати для пігліна).
+        this.addFeature(new FarmerHatFeatureRenderer<>(this, new FarmerHatModel<>(context.getPart(ModModelLayers.FARMER_HAT))));
+        this.addFeature(new FishermanHatFeatureRenderer<>(this, new FishermanHatModel<>(context.getPart(ModModelLayers.FISHERMAN_HAT))));
     }
 
     @Override

@@ -23,7 +23,7 @@ import net.minecraft.util.math.MathHelper;
  *  - "hat", "rightItem", "leftItem" - порожні кістки-кріплення в JSON без
  *    кубів, для базового рендеру не потрібні, пропущено.
  */
-public class RisenFemalePiglinModel<T extends RisenPiglinEntity> extends SinglePartEntityModel<T> {
+public class RisenFemalePiglinModel<T extends RisenPiglinEntity> extends SinglePartEntityModel<T> implements net.minecraft.client.render.entity.model.ModelWithHead {
 
     private final ModelPart root;
     private final ModelPart body;
@@ -106,6 +106,11 @@ public class RisenFemalePiglinModel<T extends RisenPiglinEntity> extends SingleP
         this.leftArm.pitch = MathHelper.cos(limbAngle * 0.6662F) * 2.0F * limbDistance * 0.5F;
         this.rightLeg.pitch = MathHelper.cos(limbAngle * 0.6662F) * 1.4F * limbDistance;
         this.leftLeg.pitch = MathHelper.cos(limbAngle * 0.6662F + (float) Math.PI) * 1.4F * limbDistance;
+    }
+
+    @Override
+    public ModelPart getHead() {
+        return this.head;
     }
 
     @Override

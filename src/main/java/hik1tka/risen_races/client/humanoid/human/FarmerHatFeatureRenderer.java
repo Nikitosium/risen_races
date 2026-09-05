@@ -1,7 +1,7 @@
 package hik1tka.risen_races.client.humanoid.human;
 
 import hik1tka.risen_races.client.humanoid.human.model.profession.hat.FarmerHatModel;
-import hik1tka.risen_races.entity.humanoid.human.HumanEntity;
+import hik1tka.risen_races.entity.humanoid.HumanoidEntity;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
@@ -13,7 +13,13 @@ import net.minecraft.client.render.entity.model.ModelWithHead;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 
-public class FarmerHatFeatureRenderer<T extends HumanEntity, M extends EntityModel<T> & ModelWithHead> extends FeatureRenderer<T, M> {
+// M послаблено до просто EntityModel<T> (без & ModelWithHead) - для
+// RisenPiglinEntityRender, що перемикає this.model між двома різними
+// класами моделі, немає способу статично довести дженериком, що ОБИДВІ
+// завжди мають ModelWithHead. Замість цього - runtime-перевірка нижче;
+// обидві наші моделі (PiglinEntityModel, RisenFemalePiglinModel) насправді
+// його реалізують, тому це безпечно.
+public class FarmerHatFeatureRenderer<T extends HumanoidEntity, M extends EntityModel<T>> extends FeatureRenderer<T, M> {
     private final FarmerHatModel<T> hatModel;
     private static final Identifier TEXTURE = new Identifier("risen_races", "textures/entity/human/profession/farmer.png");
 
@@ -28,9 +34,11 @@ public class FarmerHatFeatureRenderer<T extends HumanEntity, M extends EntityMod
         if (!"farmer".equals(entity.getHumanoidData().getProfession()) || entity.isInvisible()) return;
 
         matrices.push();
-        
-        // Магія: цей рядок копіює повороти голови NPC і передає їх капелюху
-        this.getContextModel().getHead().rotate(matrices);
+
+        // Прив'язка до голови NPC - runtime-перевірка (див. коментар на класі).
+        if (this.getContextModel() instanceof ModelWithHead modelWithHead) {
+            modelWithHead.getHead().rotate(matrices);
+        }
         
         VertexConsumer vertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEXTURE));
         this.hatModel.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, 1.0f, 1.0f, 1.0f, 1.0f);
