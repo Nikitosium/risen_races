@@ -437,15 +437,18 @@ public abstract class HumanoidEntity extends MerchantEntity {
         super.initGoals();
         GoalSelector goals = this.goalSelector;
 
-        // Розмноження - спільне для всіх рас
-        goals.add(2, new FindMateGoal(this));
+        // Розмноження - спільне для всіх рас. Пріоритет 3 (не 2!) - навмисно
+        // нижчий за MeleeAttackGoal (2), інакше ці "економічні" гоули (всі
+        // Control.MOVE, і всі здатні лишатись активними довго) назавжди
+        // забирають MOVE у бойового гоула, і атака фізично не відбувається.
+        goals.add(3, new FindMateGoal(this));
         // Той самий пріоритет, що й FindMateGoal: реально конкурують за
         // MOVE лише тоді, коли обидва можуть стартувати, а можуть вони
         // взаємовиключно - FindMateGoal шукає партнера через canBreedWith()
         // (потребує hasEnoughFoodToBreed()), PickUpFoodGoal сам вимикається,
         // щойно їжі досить (див. його canStart()).
-        goals.add(2, new PickUpFoodGoal(this));
-        goals.add(2, new AcquireProfessionGoal(this));
+        goals.add(3, new PickUpFoodGoal(this));
+        goals.add(3, new AcquireProfessionGoal(this));
         goals.add(6, new WanderAroundFarGoal(this, 0.6D)); // Блукання по світу
         goals.add(7, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F)); // Дивитися на гравця
         goals.add(8, new LookAroundGoal(this));
@@ -473,8 +476,16 @@ public abstract class HumanoidEntity extends MerchantEntity {
         goals.add(1, new ConditionalGoal(
                 new RizenPiglinDefenseGoal(this),
                 this::isFightRace));
-        // Пріоритет 2: фактична атака (Control.MOVE/LOOK) - без цього
-        // ціль виставляється, а ніхто фізично не б'ється.
+        // Пріоритет 2: фактична атака (Control.MOVE/LOOK). Свідомо ВИЩИЙ
+        // пріоритет (менше число), ніж у "економічних" гоулів нижче
+        // (FindMateGoal/PickUpFoodGoal/AcquireProfessionGoal, пріоритет 3) -
+        // інакше, поки один з них активний (а FindMateGoal чи
+        // AcquireProfessionGoal можуть бути активні десятки секунд поспіль),
+        // MeleeAttackGoal фізично ніколи не отримує Control.MOVE: ціль
+        // виставляється (RizenPiglinDefenseGoal), а підійти й вдарити нема чим.
+        // Водночас 2 > 1 - LowHealthFleeGoal (RisenPiglinEntity, пріоритет 1,
+        // теж Control.MOVE) як і раніше гарантовано переважає атаку при
+        // критичному хп, незалежно від того, який з них "зараз запущений".
         goals.add(2, new ConditionalGoal(
                 new MeleeAttackGoal(this, 1.2D, false),
                 this::isFightRace));
