@@ -36,13 +36,14 @@ public class FarmerHatFeatureRenderer<T extends HumanoidEntity, M extends Entity
         matrices.push();
 
         // Прив'язка до голови NPC - runtime-перевірка (див. коментар на класі).
-        if (this.getContextModel() instanceof ModelWithHead modelWithHead) {
+        if (this.getContextModel() instanceof net.minecraft.client.render.entity.model.ModelWithHead modelWithHead) {
             modelWithHead.getHead().rotate(matrices);
         }
-        
+        matrices.translate(0.0, entity.getHatYOffset(), 0.0);
+
         VertexConsumer vertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEXTURE));
         this.hatModel.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, 1.0f, 1.0f, 1.0f, 1.0f);
-        
+
         matrices.pop();
     }
 }

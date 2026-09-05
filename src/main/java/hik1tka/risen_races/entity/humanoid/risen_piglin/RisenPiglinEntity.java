@@ -65,6 +65,14 @@ public class RisenPiglinEntity extends HumanoidEntity implements IGenderedEntity
     }
 
     @Override
+    public float getHatYOffset() {
+        // Голова пігліна геометрично вища за людську - без цього спільна
+        // шапка-модель сидить трохи низько. 2px = 2/16. Підбери 2-3px
+        // (0.125F-0.1875F) на око в грі.
+        return -0.125F;
+    }
+
+    @Override
     public List<ProfessionDefinition> getAvailableProfessions() {
         return List.of(
                 new ProfessionDefinition("farmer", net.minecraft.world.poi.PointOfInterestTypes.FARMER, 48),
