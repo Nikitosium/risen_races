@@ -10,6 +10,11 @@ import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.VillagerResemblingModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
+import hik1tka.risen_races.client.humanoid.human.FarmerHatFeatureRenderer;
+import hik1tka.risen_races.client.humanoid.human.FishermanHatFeatureRenderer;
+import hik1tka.risen_races.client.humanoid.human.model.profession.hat.FarmerHatModel;
+import hik1tka.risen_races.client.humanoid.human.model.profession.hat.FishermanHatModel;
+import hik1tka.risen_races.register.ModModelLayers;
 
 public class RynarEntityRender extends MobEntityRenderer<RynarEntity, VillagerResemblingModel<RynarEntity>> {
 
@@ -19,6 +24,8 @@ public class RynarEntityRender extends MobEntityRenderer<RynarEntity, VillagerRe
     public RynarEntityRender(EntityRendererFactory.Context context) {
         super(context, new VillagerResemblingModel<>(context.getPart(EntityModelLayers.VILLAGER)), 0.5F);
         this.addFeature(new RynarClothingFeatureRenderer(this));
+        this.addFeature(new FarmerHatFeatureRenderer<>(this, new FarmerHatModel<>(context.getPart(ModModelLayers.FARMER_HAT))));
+        this.addFeature(new FishermanHatFeatureRenderer<>(this, new FishermanHatModel<>(context.getPart(ModModelLayers.FISHERMAN_HAT))));
     }
 
     @Override

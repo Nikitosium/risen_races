@@ -445,7 +445,7 @@ public abstract class HumanoidEntity extends MerchantEntity {
         // (потребує hasEnoughFoodToBreed()), PickUpFoodGoal сам вимикається,
         // щойно їжі досить (див. його canStart()).
         goals.add(2, new PickUpFoodGoal(this));
-        goals.add(3, new AcquireProfessionGoal(this));
+        goals.add(2, new AcquireProfessionGoal(this));
         goals.add(6, new WanderAroundFarGoal(this, 0.6D)); // Блукання по світу
         goals.add(7, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F)); // Дивитися на гравця
         goals.add(8, new LookAroundGoal(this));

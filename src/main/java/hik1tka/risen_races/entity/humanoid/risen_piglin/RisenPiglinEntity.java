@@ -4,9 +4,11 @@ import hik1tka.risen_races.RisenRaces;
 import hik1tka.risen_races.entity.humanoid.HumanoidEntity;
 import hik1tka.risen_races.entity.humanoid.HumanoidRace;
 import hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition;
+import hik1tka.risen_races.entity.humanoid.goal.LowHealthFleeGoal;
 import hik1tka.risen_races.util.IGenderedEntity;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.entity.*;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.passive.PassiveEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
@@ -35,6 +37,17 @@ public class RisenPiglinEntity extends HumanoidEntity implements IGenderedEntity
         return HumanoidEntity.createHumanoidAttributes();
     }
 
+    private static final float LOW_HEALTH_THRESHOLD = 5.0f;
+
+    // TODO: тимчасовий булевий прапорець замість трекінгу конкретного гравця.
+    // Коли з'явиться ефект зняття прокляття (кидаєш зілля у дикого ванільного
+    // пігліна -> конвертується в RisenPiglinEntity, слідує до порталу) - саме
+    // той мixin/ефект і виставлятиме hasRescuer = true в момент конвертації.
+    // Поведінку "слідує за гравцем до порталу" і "тримається подалі від
+    // порталу в нашому світі" підключимо окремими гоулами тоді ж - вони не
+    // частина цієї змінної.
+    private boolean hasRescuer = false;
+
     public RisenPiglinEntity(EntityType<? extends HumanoidEntity> entityType, World world) {
         super(entityType, world);
     }
@@ -49,6 +62,15 @@ public class RisenPiglinEntity extends HumanoidEntity implements IGenderedEntity
         this.setRace(HumanoidRace.RIZEN_PIGLIN);
         this.setFemale(this.random.nextBoolean());
         return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
+    }
+
+    @Override
+    protected void initGoals() {
+        super.initGoals();
+        // Пріоритет 1 - вищий за MeleeAttackGoal (пріоритет 2 в базовому
+        // HumanoidEntity), тому поки хп критично мале, бій фізично не може
+        // тривати: LowHealthFleeGoal забирає Control.MOVE собі.
+        this.goalSelector.add(1, new LowHealthFleeGoal(this));
     }
 
     @Override
@@ -70,6 +92,38 @@ public class RisenPiglinEntity extends HumanoidEntity implements IGenderedEntity
         // шапка-модель сидить трохи низько. 2px = 2/16. Підбери 2-3px
         // (0.125F-0.1875F) на око в грі.
         return -0.125F;
+    }
+
+    public void setHasRescuer(boolean value) {
+        this.hasRescuer = value;
+    }
+
+    public boolean hasRescuer() {
+        return this.hasRescuer;
+    }
+
+    @Override
+    public boolean damage(DamageSource source, float amount) {
+        boolean hurt = super.damage(source, amount);
+        if (hurt && !this.getWorld().isClient && source.getAttacker() instanceof LivingEntity attacker) {
+            reactToDamage(attacker);
+        }
+        return hurt;
+    }
+
+    private void reactToDamage(LivingEntity attacker) {
+        if (this.getHealth() < LOW_HEALTH_THRESHOLD) {
+            // критично мало хп - тікаємо від будь-кого, навіть якщо є рятівник
+            this.setTarget(null);
+            return;
+        }
+        if (this.hasRescuer) {
+            // TODO: зараз "довіряє взагалі всім" замість "довіряє конкретно
+            // тому, хто зняв прокляття" - нормально для заглушки, поки нема
+            // самого ефекту й способу відрізнити свого гравця від чужого.
+            return;
+        }
+        this.setTarget(attacker);
     }
 
     @Override
@@ -102,5 +156,17 @@ public class RisenPiglinEntity extends HumanoidEntity implements IGenderedEntity
     @Override
     public boolean canBreedWith(PassiveEntity other) {
         return this.canBreedWithGendered(other);
+    }
+
+    @Override
+    public void writeCustomDataToNbt(NbtCompound nbt) {
+        super.writeCustomDataToNbt(nbt);
+        nbt.putBoolean("HasRescuer", this.hasRescuer);
+    }
+
+    @Override
+    public void readCustomDataFromNbt(NbtCompound nbt) {
+        super.readCustomDataFromNbt(nbt);
+        this.hasRescuer = nbt.getBoolean("HasRescuer");
     }
 }
