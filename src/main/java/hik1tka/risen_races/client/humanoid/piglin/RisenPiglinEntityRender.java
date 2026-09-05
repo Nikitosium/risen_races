@@ -35,6 +35,7 @@ public class RisenPiglinEntityRender extends MobEntityRenderer<RisenPiglinEntity
         super(context, new PiglinEntityModel<>(context.getPart(EntityModelLayers.PIGLIN)), 0.5F);
         this.maleModel = new PiglinEntityModel<>(context.getPart(EntityModelLayers.PIGLIN));
         this.femaleModel = new RisenFemalePiglinModel<>(context.getPart(ModModelLayers.RISEN_PIGLIN_FEMALE));
+        this.addFeature(new RisenPiglinClothingFeatureRenderer(this));
     }
 
     @Override

@@ -18,6 +18,7 @@ public class RynarEntityRender extends MobEntityRenderer<RynarEntity, VillagerRe
 
     public RynarEntityRender(EntityRendererFactory.Context context) {
         super(context, new VillagerResemblingModel<>(context.getPart(EntityModelLayers.VILLAGER)), 0.5F);
+        this.addFeature(new RynarClothingFeatureRenderer(this));
     }
 
     @Override
