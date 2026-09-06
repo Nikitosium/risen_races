@@ -30,6 +30,14 @@ import java.util.WeakHashMap;
  * VillageBounds ще не підключено - getSettlementName() завжди повертає
  * "село". Точний mod id/API цього мода я не знаю, тому не гадаю навмання -
  * підстав реальний виклик, коли буде документація/клас під рукою.
+ *
+ * ВАЖЛИВО: "вільні місця" тут - НЕ точний claim-based підрахунок (як у
+ * AcquireProfessionGoal, де кожен ентіті "застовбовує" собі конкретний
+ * jobSite) - це просто "скільки POI типу HOME проти скільки живих ентіті
+ * того ж класу поруч", без прив'язки хто саме в якому ліжку. Спрощення
+ * свідоме, але саме тому число вільних місць треба перераховувати
+ * ЩОРАЗУ, коли воно на щось впливає (canBreedWith і фактичний спавн
+ * дітей - різні моменти часу, між ними хтось інший міг зайняти місце).
  */
 public class VillageCapacityHelper {
 
@@ -38,8 +46,17 @@ public class VillageCapacityHelper {
 
     private static final Map<ServerWorld, Long> lastAnnouncedDay = new WeakHashMap<>();
 
-    public static boolean hasRoomToBreed(HumanoidEntity self) {
-        if (!(self.getWorld() instanceof ServerWorld world)) return true;
+    /**
+     * Скільки вільних місць лишається ЗАРАЗ (ліжка мінус живі ентіті того ж
+     * класу поблизу), не менше 0. MAX_VALUE поза ServerWorld (клієнт) -
+     * там розмноження й так ніколи не відбувається, просто щоб виклик
+     * нічого штучно не обмежував.
+     *
+     * Публічний - потрібен і HumanoidEntity#tick() (перевірка черги
+     * pendingBabies), не лише breedWith()/hasRoomToBreed() тут же.
+     */
+    public static int getAvailableRoom(HumanoidEntity self) {
+        if (!(self.getWorld() instanceof ServerWorld world)) return Integer.MAX_VALUE;
 
         Box area = self.getBoundingBox().expand(SEARCH_RADIUS);
 
@@ -52,16 +69,77 @@ public class VillageCapacityHelper {
 
         long population = world.getEntitiesByClass(self.getClass(), area, e -> true).size();
 
-        if (population < beds) return true;
+        return (int) Math.max(0L, beds - population);
+    }
 
-        maybeAnnounce(world, (int) (population - beds + 1));
+    public static boolean hasRoomToBreed(HumanoidEntity self) {
+        int room = getAvailableRoom(self);
+        if (room > 0) return true;
+
+        // room <= 0: -room - це "на скільки вже перебор", +1 - бо навіть
+        // рівно "впритул" (room == 0) вже означає "не вистачає місця ще
+        // для 1". Той самий сенс, що й раніше (population - beds + 1).
+        maybeAnnounce(self.getWorld(), -room + 1);
         return false;
     }
 
-    private static void maybeAnnounce(ServerWorld world, int shortage) {
+    /**
+     * Обрізає кількість дитинчат, "заслужену" їжею (FoodInfo.babies() -
+     * напр. яблуко Нотча "обіцяє" 4), до фактично вільних місць. Їжа вже
+     * списана на requestedBabies повністю в HumanoidEntity#breedWith() -
+     * золоте яблуко коштує стільки ж, навіть якщо реально народиться
+     * менше дітей, ніж воно давало б у переповненому селі. Викликати
+     * ПРЯМО ПЕРЕД спавном дітей, не раніше: FindMateGoal.canStart() уже
+     * перевірив hasRoomToBreed() на старті пошуку пари, але поки пара
+     * йшла назустріч одне одному, місце міг зайняти хтось інший.
+     */
+    public static int capBabyCount(HumanoidEntity self, int requestedBabies) {
+        return Math.min(requestedBabies, getAvailableRoom(self));
+    }
+
+    /**
+     * Миттєве ОДНОРАЗОВЕ сповіщення - викликати одразу після спавну дітей
+     * (breedWith), а не чекати щоденної перевірки о 12:00 (maybeAnnounce,
+     * через hasRoomToBreed). Якщо саме ЦІ пологи заповнили село "під
+     * зав'язку" (room <= 0 після спавну) - гравець дізнається зараз.
+     * Позначає день як "уже показано" через той самий lastAnnouncedDay,
+     * що й денне нагадування - щоб сьогодні воно не продублювалось ще й
+     * опівдні; завтра, якщо село й досі переповнене, нагадування піде
+     * знову як завжди.
+     */
+    public static void announceIfFull(HumanoidEntity self) {
+        if (!(self.getWorld() instanceof ServerWorld world)) return;
+
+        int room = getAvailableRoom(self);
+        if (room > 0) return;
+
+        announceNow(world, -room + 1);
+    }
+
+    /**
+     * Миттєве повідомлення з ТОЧНИМ числом дітей, яких довелось поставити
+     * в чергу (HumanoidEntity#queuePendingBabies) - на відміну від
+     * announceIfFull() (загальне "рівно заповнено, не вистачає ще для 1"),
+     * тут число - саме те, скільки дитинчат з ЦЬОГО конкретного обряду не
+     * влізло одразу (напр. яблуко Нотча дало 4, влізло 2 -> тут буде 2).
+     * Той самий lastAnnouncedDay - не дублюється з денним нагадуванням.
+     */
+    public static void announceQueuedBirths(HumanoidEntity self, int queuedCount) {
+        if (queuedCount <= 0) return;
+        if (!(self.getWorld() instanceof ServerWorld world)) return;
+        announceNow(world, queuedCount);
+    }
+
+    private static void maybeAnnounce(net.minecraft.world.World genericWorld, int shortage) {
+        if (!(genericWorld instanceof ServerWorld world)) return;
+
         long timeOfDay = world.getTimeOfDay() % 24000L;
         if (timeOfDay < NOON_TICK) return;
 
+        announceNow(world, shortage);
+    }
+
+    private static void announceNow(ServerWorld world, int shortage) {
         long day = world.getTimeOfDay() / 24000L;
         Long alreadyShown = lastAnnouncedDay.get(world);
         if (alreadyShown != null && alreadyShown == day) return;

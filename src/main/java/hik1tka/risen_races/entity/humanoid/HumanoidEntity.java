@@ -8,6 +8,7 @@ import hik1tka.risen_races.entity.humanoid.goal.FindMateGoal;
 import hik1tka.risen_races.entity.humanoid.goal.PanicUntilSafeGoal;
 import hik1tka.risen_races.entity.humanoid.goal.PickUpFoodGoal;
 import hik1tka.risen_races.entity.humanoid.goal.RizenPiglinDefenseGoal;
+import hik1tka.risen_races.util.VillageCapacityHelper;
 import net.minecraft.entity.EntityType;
 //import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.*;
@@ -108,6 +109,17 @@ public abstract class HumanoidEntity extends MerchantEntity {
 
     // кулдаун розмноження, у тіках (щоб не плодились щосекунди)
     private int breedingCooldown = 0;
+
+    // --- Черга "недонароджених" дітей ---
+    // Скільки дитинчат цей ентіті ще "винен" світові - залишок від
+    // breedWith(), коли їжа дала більше дітей (напр. яблуко Нотча - 4),
+    // ніж було вільних місць у селі на момент пологів. Не губимо цю
+    // різницю, а видаємо по одній дитині за раз пізніше - див.
+    // queuePendingBabies()/tick().
+    private int pendingBabies = 0;
+    // Абсолютний world.getTime(), коли варто зробити НАСТУПНУ спробу
+    // видати 1 дитину з черги. -1 - черга порожня, перевіряти нічого.
+    private long nextPendingBirthTick = -1L;
 
     public HumanoidEntity(EntityType<? extends MerchantEntity> entityType, World world) {
         super(entityType, world);
@@ -442,30 +454,104 @@ public abstract class HumanoidEntity extends MerchantEntity {
         // дитинчат "заслужила" ця їжа (беремо кращий результат з двох батьків).
         int babiesFromThis = this.consumeBreedingFoodAndGetBabies();
         int babiesFromPartner = partner.consumeBreedingFoodAndGetBabies();
-        int babyCount = Math.max(babiesFromThis, babiesFromPartner);
+        int requestedBabies = Math.max(babiesFromThis, babiesFromPartner);
+
+        // Обрізаємо до фактично вільних місць ПРЯМО ЗАРАЗ, а не покладаємось
+        // лише на гейт FindMateGoal.canStart() -> hasRoomToBreed(): той
+        // перевіряв "місце є" ще на старті пошуку пари, до того, як вони
+        // йшли назустріч одне одному - за цей час хтось інший міг встигнути
+        // розмножитись першим. Їжа вже списана повністю на requestedBabies -
+        // яблуко Нотча коштує стільки ж, навіть якщо реально народиться
+        // менше дітей, ніж воно "обіцяло" (переповнене село не повертає їжу).
+        int babyCount = VillageCapacityHelper.capBabyCount(this, requestedBabies);
 
         for (int i = 0; i < babyCount; i++) {
-            HumanoidEntity baby = (HumanoidEntity) getType().create(serverWorld);
-            if (baby == null) continue;
-
-            baby.setRace(this.getRace());
-            baby.setFemale(this.random.nextBoolean());
-            // Робимо ентіті дитиною: без цього isBaby() == false і getScaleFactor()
-            // (в HumanEntity) ніколи не застосовує зменшений масштаб.
-            baby.setBreedingAge(-24000);
-            // Невеликий розкид позиції, щоб кілька дитинчат не спавнились
-            // рівно в одній точці одне на одному.
-            double offsetX = (this.random.nextDouble() - 0.5D) * 1.5D;
-            double offsetZ = (this.random.nextDouble() - 0.5D) * 1.5D;
-            baby.refreshPositionAndAngles(this.getX() + offsetX, this.getY(), this.getZ() + offsetZ, 0.0F, 0.0F);
-            // Даємо расі шанс довизначити щось специфічне для щойно народженої дитини
-            // (наприклад, скін по статі - див. HumanEntity.onBabyCreated).
-            onBabyCreated(baby);
-            serverWorld.spawnEntityAndPassengers(baby);
+            spawnOneBaby(serverWorld);
         }
 
         this.resetBreedingCooldown();
         partner.resetBreedingCooldown();
+
+        int shortfall = requestedBabies - babyCount;
+        if (shortfall > 0) {
+            // Не влізли одразу - не пропадають, а стають чергою на "this":
+            // видаються по одній дитині за раз пізніше, коли з'явиться
+            // місце (tick() -> pendingBabies).
+            queuePendingBabies(shortfall);
+            // Миттєве сповіщення з ТОЧНИМ числом дітей, які не влізли цього
+            // разу (а не загальним "рівно заповнено" з announceIfFull) -
+            // саме це число гравець і очікує побачити, коли годує пару
+            // яблуком Нотча в майже заповненому селі.
+            VillageCapacityHelper.announceQueuedBirths(this, shortfall);
+        } else {
+            // Влізли всі, але саме ці пологи могли заповнити село "під
+            // зав'язку" - про це теж варто дізнатись одразу, а не чекати
+            // 12:00 наступного дня (VillageCapacityHelper.hasRoomToBreed()).
+            VillageCapacityHelper.announceIfFull(this);
+        }
+    }
+
+    /**
+     * Власне спавн ОДНІЄЇ дитини - винесено окремо від breedWith(), бо той
+     * самий код потрібен і для видачі дітей з черги (pendingBabies) в
+     * tick(), не лише в момент самого "обряду".
+     */
+    private void spawnOneBaby(ServerWorld serverWorld) {
+        HumanoidEntity baby = (HumanoidEntity) getType().create(serverWorld);
+        if (baby == null) return;
+
+        baby.setRace(this.getRace());
+        baby.setFemale(this.random.nextBoolean());
+        // Робимо ентіті дитиною: без цього isBaby() == false і getScaleFactor()
+        // (в HumanEntity) ніколи не застосовує зменшений масштаб.
+        baby.setBreedingAge(-24000);
+        // Невеликий розкид позиції, щоб кілька дитинчат не спавнились
+        // рівно в одній точці одне на одному.
+        double offsetX = (this.random.nextDouble() - 0.5D) * 1.5D;
+        double offsetZ = (this.random.nextDouble() - 0.5D) * 1.5D;
+        baby.refreshPositionAndAngles(this.getX() + offsetX, this.getY(), this.getZ() + offsetZ, 0.0F, 0.0F);
+        // Даємо расі шанс довизначити щось специфічне для щойно народженої дитини
+        // (наприклад, скін по статі - див. HumanEntity.onBabyCreated).
+        onBabyCreated(baby);
+        serverWorld.spawnEntityAndPassengers(baby);
+    }
+
+    /**
+     * Додає дітей у чергу "боргу" - вони не пропадають, а видаються по
+     * одній штуці за раз пізніше (tick()), в рандомний момент. Якщо черга
+     * щойно була порожня - одразу плануємо першу спробу.
+     */
+    private void queuePendingBabies(int count) {
+        boolean wasEmpty = this.pendingBabies <= 0;
+        this.pendingBabies += count;
+        if (wasEmpty) {
+            scheduleNextPendingBirthAttempt(true);
+        }
+    }
+
+    /**
+     * Коли робити наступну спробу видати 1 дитину з черги.
+     *
+     * successfulLastAttempt = true (попередня спроба вдалась, або це
+     * взагалі перший запис у чергу) - чекаємо ПРИБЛИЗНО ігровий день,
+     * але в РАНДОМНИЙ момент (18000-30000 тіків розкиду) - навмисно не
+     * рівно "щодня о певній годині" і не прив'язано до жодного розкладу
+     * роботи/сну, інакше десяток "боржників" видавали б дітей одночасно
+     * (саме те, чого просили уникнути).
+     *
+     * successfulLastAttempt = false (місця й досі нема) - повторюємо
+     * набагато швидше (600-1800 тіків, ~30-90 сек), а не чекаємо цілу
+     * добу: якщо гравець щойно розширив село, результат має бути видно
+     * скоро, а не через день.
+     */
+    private void scheduleNextPendingBirthAttempt(boolean successfulLastAttempt) {
+        long now = this.getWorld().getTime();
+        if (successfulLastAttempt) {
+            // TODO: підбери інтервал під свій баланс - зараз ~0.9-1.5 ігрового дня.
+            this.nextPendingBirthTick = now + 18000L + this.random.nextInt(12000);
+        } else {
+            this.nextPendingBirthTick = now + 600L + this.random.nextInt(1200);
+        }
     }
 
     /**
@@ -579,6 +665,10 @@ public abstract class HumanoidEntity extends MerchantEntity {
         nbt.putInt("Race", getRace().ordinal());
         nbt.putBoolean("IsFemale", isFemale());
         nbt.putInt("BreedingCooldown", breedingCooldown);
+        nbt.putInt("PendingBabies", pendingBabies);
+        if (pendingBabies > 0) {
+            nbt.putLong("NextPendingBirthTick", nextPendingBirthTick);
+        }
         nbt.putString("Profession", getProfession());
         if (jobSite != null) {
             nbt.put("JobSite", net.minecraft.nbt.NbtHelper.fromBlockPos(jobSite));
@@ -610,6 +700,10 @@ public abstract class HumanoidEntity extends MerchantEntity {
             this.jobSite = net.minecraft.nbt.NbtHelper.toBlockPos(nbt.getCompound("JobSite"));
         }
         this.breedingCooldown = nbt.getInt("BreedingCooldown");
+        this.pendingBabies = nbt.getInt("PendingBabies");
+        this.nextPendingBirthTick = this.pendingBabies > 0 && nbt.contains("NextPendingBirthTick")
+                ? nbt.getLong("NextPendingBirthTick")
+                : -1L;
 
         if (nbt.contains("HumanoidInventory")) {
             net.minecraft.util.collection.DefaultedList<ItemStack> items =
@@ -628,6 +722,32 @@ public abstract class HumanoidEntity extends MerchantEntity {
             if (breedingCooldown > 0) {
                 breedingCooldown--;
             }
+
+            // Черга "недонароджених" дітей (pendingBabies) - перевіряємо
+            // лише коли настав ЗАПЛАНОВАНИЙ момент (nextPendingBirthTick),
+            // а не щотика: тут не потрібна висока частота, а рандомний
+            // розкид часу - саме ціль цього механізму (див.
+            // scheduleNextPendingBirthAttempt()).
+            if (pendingBabies > 0 && getWorld() instanceof ServerWorld pendingBirthWorld
+                    && getWorld().getTime() >= nextPendingBirthTick) {
+                if (VillageCapacityHelper.getAvailableRoom(this) > 0) {
+                    spawnOneBaby(pendingBirthWorld);
+                    pendingBabies--;
+                    // Ця конкретна дитина теж могла заповнити село "під
+                    // зав'язку" - той самий миттєвий тригер, що й у breedWith().
+                    VillageCapacityHelper.announceIfFull(this);
+                    if (pendingBabies > 0) {
+                        scheduleNextPendingBirthAttempt(true);
+                    } else {
+                        nextPendingBirthTick = -1L;
+                    }
+                } else {
+                    // Місця й досі нема - пробуємо знов набагато швидше,
+                    // не чекаючи цілий день (див. коментар на методі).
+                    scheduleNextPendingBirthAttempt(false);
+                }
+            }
+
             // Раз на секунду перевіряємо, що робоче місце ще існує (не зламане/
             // не замінене іншим блоком) - інакше звільняємо професію.
             if (jobSite != null && this.age % 20 == 0
