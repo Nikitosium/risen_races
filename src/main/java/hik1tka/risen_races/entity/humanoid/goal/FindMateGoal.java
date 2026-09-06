@@ -1,6 +1,7 @@
 package hik1tka.risen_races.entity.humanoid.goal;
 
 import hik1tka.risen_races.entity.humanoid.HumanoidEntity;
+import hik1tka.risen_races.util.VillageCapacityHelper;
 import net.minecraft.entity.ai.goal.Goal;
 import net.minecraft.util.math.Box;
 
@@ -9,7 +10,8 @@ import java.util.List;
 
 /**
  * Шукає партнера для розмноження серед HumanoidEntity поблизу:
- * та ж раса, протилежна isFemale, обидва без кулдауну.
+ * та ж раса, протилежна isFemale, обидва без кулдауну, і є вільне місце в
+ * поселенні (VillageCapacityHelper - ліжок має бути більше, ніж уже живих).
  * Коли знайшов і підійшов достатньо близько - викликає breedWith().
  */
 public class FindMateGoal extends Goal {
@@ -28,6 +30,7 @@ public class FindMateGoal extends Goal {
     @Override
     public boolean canStart() {
         if (!self.isBreedingReady()) return false;
+        if (!VillageCapacityHelper.hasRoomToBreed(self)) return false;
 
         Box box = self.getBoundingBox().expand(SEARCH_RADIUS);
         List<HumanoidEntity> candidates = self.getWorld().getEntitiesByClass(
