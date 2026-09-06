@@ -36,8 +36,8 @@ public class RisenPiglinEntityRender extends MobEntityRenderer<RisenPiglinEntity
     private final RisenFemalePiglinModel<RisenPiglinEntity> femaleModel;
 
     public RisenPiglinEntityRender(EntityRendererFactory.Context context) {
-        super(context, new PiglinEntityModel<>(context.getPart(EntityModelLayers.PIGLIN)), 0.5F);
-        this.maleModel = new PiglinEntityModel<>(context.getPart(EntityModelLayers.PIGLIN));
+        super(context, createMaleModel(context.getPart(EntityModelLayers.PIGLIN)), 0.3F);
+        this.maleModel = (PiglinEntityModel<RisenPiglinEntity>) this.model;
         this.femaleModel = new RisenFemalePiglinModel<>(context.getPart(ModModelLayers.RISEN_PIGLIN_FEMALE));
         this.addFeature(new RisenPiglinClothingFeatureRenderer(this));
 
@@ -45,6 +45,27 @@ public class RisenPiglinEntityRender extends MobEntityRenderer<RisenPiglinEntity
         // самі по собі узагальнені по Entity - їх не треба дублювати для пігліна).
         this.addFeature(new FarmerHatFeatureRenderer<>(this, new FarmerHatModel<>(context.getPart(ModModelLayers.FARMER_HAT))));
         this.addFeature(new FishermanHatFeatureRenderer<>(this, new FishermanHatModel<>(context.getPart(ModModelLayers.FISHERMAN_HAT))));
+    }
+
+    /**
+     * Той самий трюк, що вже застосований для Human/PlayerEntityModel:
+     * BipedEntityModel має вбудований прапорець "child", який САМ включає
+     * ефект "велика голова + стиснуте тіло" для дитини - PiglinEntityModel
+     * успадковує цю поведінку від BipedEntityModel/AnimalModel. Оскільки ми
+     * і так робимо розмір дитини через власний RisenPiglinEntity.getScaleFactor(),
+     * цей вбудований ефект - зайвий, і саме він давав хлопчикам завелику
+     * голову (жіноча кастомна модель такого вбудованого прапорця не має,
+     * тому дівчата й були нормальні).
+     */
+    private static PiglinEntityModel<RisenPiglinEntity> createMaleModel(net.minecraft.client.model.ModelPart root) {
+        return new PiglinEntityModel<>(root) {
+            @Override
+            public void setAngles(RisenPiglinEntity entity, float limbAngle, float limbDistance,
+                                  float animationProgress, float headYaw, float headPitch) {
+                super.setAngles(entity, limbAngle, limbDistance, animationProgress, headYaw, headPitch);
+                this.child = false;
+            }
+        };
     }
 
     @Override
@@ -64,7 +85,7 @@ public class RisenPiglinEntityRender extends MobEntityRenderer<RisenPiglinEntity
 
     @Override
     protected void scale(RisenPiglinEntity entity, MatrixStack matrices, float amount) {
-        float babyScale = entity.getScaleFactor();
-        matrices.scale(babyScale, babyScale, babyScale);
+        float f = entity.getScaleFactor();
+        matrices.scale(f, f, f);
     }
 }

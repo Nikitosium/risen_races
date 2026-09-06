@@ -284,6 +284,68 @@ public abstract class HumanoidEntity extends MerchantEntity {
     }
 
     /**
+     * Сумарна КІЛЬКІСТЬ штук їстівних предметів в інвентарі - на відміну від
+     * getFoodValueInInventory(), тут не враховуються "бали" BREEDING_FOOD_VALUES,
+     * лише сира кількість. Використовується для ShareFoodGoal: золоте яблуко
+     * Нотча (1 шт., багато балів) не ділиться, а 2 звичайних яблука (мало
+     * балів кожне) - діляться, бо порівняння йде по штуках.
+     */
+    public int getTotalFoodItemCount() {
+        int total = 0;
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (isBreedingFood(stack.getItem())) {
+                total += stack.getCount();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Приймає "подарунок" їжі від іншого гуманоїда - той самий механізм
+     * вставки, що й loot(), але без ItemEntity/звуку підбору (тут з рук в
+     * руки, а не з землі). Повертає залишок, якщо інвентар отримувача
+     * виявився повний.
+     */
+    public ItemStack receiveFoodGift(ItemStack stack) {
+        for (int i = 0; i < inventory.size() && !stack.isEmpty(); i++) {
+            ItemStack slot = inventory.getStack(i);
+            if (slot.isEmpty()) {
+                inventory.setStack(i, stack.split(stack.getCount()));
+            } else if (ItemStack.canCombine(slot, stack)) {
+                int space = slot.getMaxCount() - slot.getCount();
+                int amount = Math.min(space, stack.getCount());
+                if (amount > 0) {
+                    slot.increment(amount);
+                    stack.decrement(amount);
+                }
+            }
+        }
+        return stack;
+    }
+
+    /**
+     * Ділиться РІВНО 1 штукою їжі з іншим гуманоїдом - лише якщо після
+     * передачі в себе лишиться хоча б 1 (тобто зараз >= 2 такого предмета).
+     * Порівняння йде по КІЛЬКОСТІ штук, не по балах - див. getTotalFoodItemCount().
+     */
+    public boolean shareOneFoodItemWith(HumanoidEntity other) {
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (isBreedingFood(stack.getItem()) && stack.getCount() >= 2) {
+                ItemStack gift = stack.copy();
+                gift.setCount(1);
+                ItemStack leftover = other.receiveFoodGift(gift);
+                if (leftover.isEmpty()) {
+                    stack.decrement(1);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Списує з інвентаря їжу на суму BREEDING_FOOD_REQUIREMENT балів і
      * повертає, скільки дитинчат "заслуговує" на цю комбінацію їжі -
      * максимум серед babies() усіх фактично списаних предметів (мінімум 1).
@@ -449,6 +511,9 @@ public abstract class HumanoidEntity extends MerchantEntity {
         // щойно їжі досить (див. його canStart()).
         goals.add(3, new PickUpFoodGoal(this));
         goals.add(3, new AcquireProfessionGoal(this));
+        // Пріоритет 4 - нижче за власне виживання/розмноження/роботу (усі на
+        // 3): спершу нагодуй/влаштуй себе, лише потім думай про сусіда.
+        goals.add(4, new hik1tka.risen_races.entity.humanoid.goal.ShareFoodGoal(this));
         goals.add(6, new WanderAroundFarGoal(this, 0.6D)); // Блукання по світу
         goals.add(7, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F)); // Дивитися на гравця
         goals.add(8, new LookAroundGoal(this));

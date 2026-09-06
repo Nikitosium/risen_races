@@ -199,8 +199,19 @@ public class RisenPiglinEntity extends HumanoidEntity implements IGenderedEntity
         return null;
     }
 
+    /**
+     * Дитячий скейл підібраний ОКРЕМО під кожну стать - компенсує різницю
+     * в самих моделях (жіноча геометрія більша за чоловічу за задумом),
+     * яка на дорослих формах - нормальна різниця, а на дітях виглядає як
+     * "дівчинка завелика, хлопчик замалий". Дорослих не чіпаємо взагалі -
+     * там 1.0f завжди, різниця моделей лишається такою, як намальована.
+     * ПОЧАТКОВІ ЗНАЧЕННЯ - підбери в грі на око.
+     */
     public float getScaleFactor() {
-        return this.isBaby() ? 0.7f : 1.0f;
+        if (!this.isBaby()) {
+            return 1.0f;
+        }
+        return this.isFemale() ? 0.65f : 0.7f;
     }
 
     @Override
