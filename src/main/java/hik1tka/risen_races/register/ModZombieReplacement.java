@@ -1,6 +1,6 @@
 package hik1tka.risen_races.register;
 
-import hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity;
+import hik1tka.risen_races.entity.zombie.IZombifiedHuman;
 import hik1tka.risen_races.util.ZombieVariant;
 import hik1tka.risen_races.util.ZombieVariantHelper;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
@@ -41,12 +41,17 @@ public class ModZombieReplacement {
             if (entity.getClass() != ZombieEntity.class) return;
 
             ZombieVariant variant = ZombieVariantHelper.resolveVariant(world, entity);
-            ZombifiedHumanEntity zombie = ZombieVariantHelper.create(world, variant);
+            // Тип - ZombieEntity (утопець більше не наслідує ZombifiedHumanEntity),
+            // рандомні дані для "дикого" спавну ставить через інтерфейс.
+            ZombieEntity zombie = ZombieVariantHelper.create(world, variant);
             if (zombie == null) return;
 
             zombie.refreshPositionAndAngles(entity.getX(), entity.getY(), entity.getZ(),
                     entity.getYaw(), entity.getPitch());
-            zombie.rollRandomSpawnData();
+
+            if (zombie instanceof IZombifiedHuman zombified) {
+                zombified.rollRandomSpawnData();
+            }
 
             entity.discard();
             world.spawnEntity(zombie);

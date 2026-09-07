@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  * createRestoredHuman() (щоб відновлювати RynarEntity, а не HumanEntity) -
  * решта поведінки спільна.
  */
-public class ZombifiedHumanEntity extends ZombieEntity {
+public class ZombifiedHumanEntity extends ZombieEntity implements IZombifiedHuman {
 
     public static final EntityType<ZombifiedHumanEntity> ZOMBIFIED_HUMAN = Registry.register(
             Registries.ENTITY_TYPE,

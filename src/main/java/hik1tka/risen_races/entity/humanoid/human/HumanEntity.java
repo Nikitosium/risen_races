@@ -191,13 +191,14 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     private void tryZombify(net.minecraft.server.world.ServerWorld world) {
         hik1tka.risen_races.util.ZombieVariant variant =
                 hik1tka.risen_races.util.ZombieVariantHelper.resolveVariant(world, this);
-        hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity zombie =
+        // Тип - ZombieEntity: утопець тепер успадковує ванільного DrownedEntity,
+        // а не нашого ZombifiedHumanEntity, тож спільного предка з нашими
+        // полями нема - стать/професію/пам'ять ставить через IZombifiedHuman.
+        net.minecraft.entity.mob.ZombieEntity zombie =
                 hik1tka.risen_races.util.ZombieVariantHelper.create(world, variant);
         if (zombie == null) return;
 
         zombie.refreshPositionAndAngles(this.getX(), this.getY(), this.getZ(), this.getYaw(), this.getPitch());
-        zombie.setFemale(this.isFemale());
-        zombie.setProfession(this.getProfession());
 
         net.minecraft.nbt.NbtCompound memory = new net.minecraft.nbt.NbtCompound();
         memory.putBoolean("WasFemale", this.isFemale());
@@ -205,7 +206,12 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
         memory.putString("Profession", this.getProfession());
         memory.putBoolean("IsBaby", this.isBaby());
         memory.putString("StoredName", this.hasCustomName() ? this.getCustomName().getString() : "");
-        zombie.setNpcMemory(memory);
+
+        if (zombie instanceof hik1tka.risen_races.entity.zombie.IZombifiedHuman carrier) {
+            carrier.setFemale(this.isFemale());
+            carrier.setProfession(this.getProfession());
+            carrier.setNpcMemory(memory);
+        }
 
         world.spawnEntity(zombie);
         this.discard();

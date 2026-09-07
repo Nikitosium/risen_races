@@ -6,18 +6,27 @@ import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.MobEntityRenderer;
+import net.minecraft.client.render.entity.model.DrownedEntityModel;
 import net.minecraft.client.render.entity.model.EntityModelLayers;
-import net.minecraft.client.render.entity.model.ZombieEntityModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 
 /**
- * Той самий прийом, що ZombifiedHumanHuskRenderer - лише текстура/шар
- * ванільного Drowned.
- * TODO: якщо EntityModelLayers.DROWNED відсутній у твоєму мапінгу - звір
- * точну назву константи в декомпільованому EntityModelLayers.
+ * Рендер утопця-людини. Модель - ВАНІЛЬНА DrownedEntityModel на шарі
+ * EntityModelLayers.DROWNED, той самий клас, що використовує ванільний
+ * DrownedEntityRenderer.
+ *
+ * Чому раніше "зовнішній шар" (нарости на тілі утопця) не відображався:
+ * старий код мотав геометрію шару DROWNED у ZombieEntityModel, який знає
+ * лише стандартний біпедний скелет - додаткові частини утопця (розширені
+ * dilated копії кінцівок) ніхто ні рендерив, ні анімував. DrownedEntityModel
+ * описує і анімує їх саме так, як у ванільного утопця, - тому беремо її,
+ * а не ремонтуємо ZombieEntityModel вручну.
+ *
+ * Гендерний скейл рук лишається тим самим прийомом (BipedModelAccessor),
+ * бо DrownedEntityModel - нащадок ZombieEntityModel/BipedEntityModel.
  */
-public class ZombifiedHumanDrownedRenderer extends MobEntityRenderer<ZombifiedHumanDrownedEntity, ZombieEntityModel<ZombifiedHumanDrownedEntity>> {
+public class ZombifiedHumanDrownedRenderer extends MobEntityRenderer<ZombifiedHumanDrownedEntity, DrownedEntityModel<ZombifiedHumanDrownedEntity>> {
 
     private static final Identifier TEXTURE =
             new Identifier("minecraft", "textures/entity/zombie/drowned.png");
@@ -26,7 +35,7 @@ public class ZombifiedHumanDrownedRenderer extends MobEntityRenderer<ZombifiedHu
     private static final float MALE_ARM_SCALE = 1.0f;
 
     public ZombifiedHumanDrownedRenderer(EntityRendererFactory.Context context) {
-        super(context, new ZombieEntityModel<>(context.getPart(EntityModelLayers.DROWNED)), 0.5F);
+        super(context, new DrownedEntityModel<>(context.getPart(EntityModelLayers.DROWNED)), 0.5F);
     }
 
     @Override

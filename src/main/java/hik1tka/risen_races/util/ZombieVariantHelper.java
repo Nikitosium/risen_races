@@ -4,6 +4,7 @@ import hik1tka.risen_races.entity.zombie.ZombifiedHumanDrownedEntity;
 import hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity;
 import hik1tka.risen_races.entity.zombie.ZombifiedHumanHuskEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.mob.ZombieEntity;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
@@ -76,7 +77,7 @@ public final class ZombieVariantHelper {
      * повернути null - наприклад, якщо реєстр ще не готовий).
      */
     @Nullable
-    public static ZombifiedHumanEntity create(ServerWorld world, ZombieVariant variant) {
+    public static ZombieEntity create(ServerWorld world, ZombieVariant variant) {
         return switch (variant) {
             case HUSK -> ZombifiedHumanHuskEntity.ZOMBIFIED_HUMAN_HUSK.create(world);
             case DROWNED -> ZombifiedHumanDrownedEntity.ZOMBIFIED_HUMAN_DROWNED.create(world);
