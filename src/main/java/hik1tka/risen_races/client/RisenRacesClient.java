@@ -6,11 +6,15 @@ import hik1tka.risen_races.client.humanoid.human.model.profession.hat.FishermanH
 import hik1tka.risen_races.client.humanoid.piglin.RisenPiglinEntityRender;
 import hik1tka.risen_races.client.humanoid.piglin.model.RisenFemalePiglinModel;
 import hik1tka.risen_races.client.humanoid.rynar.RynarEntityRender;
+import hik1tka.risen_races.client.zombie.ZombifiedHumanDrownedRenderer;
 import hik1tka.risen_races.client.zombie.ZombifiedHumanEntityRenderer;
+import hik1tka.risen_races.client.zombie.ZombifiedHumanHuskRenderer;
 import hik1tka.risen_races.entity.humanoid.human.HumanEntity;
 import hik1tka.risen_races.entity.humanoid.risen_piglin.RisenPiglinEntity;
 import hik1tka.risen_races.entity.humanoid.rynar.RynarEntity;
+import hik1tka.risen_races.entity.zombie.ZombifiedHumanDrownedEntity;
 import hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity;
+import hik1tka.risen_races.entity.zombie.ZombifiedHumanHuskEntity;
 import hik1tka.risen_races.register.ModModelLayers;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
@@ -31,5 +35,7 @@ public class RisenRacesClient implements ClientModInitializer {
         EntityRendererRegistry.register(RisenPiglinEntity.RISEN_PIGLIN, RisenPiglinEntityRender::new);
         EntityRendererRegistry.register(RynarEntity.RYNAR, RynarEntityRender::new);
         EntityRendererRegistry.register(ZombifiedHumanEntity.ZOMBIFIED_HUMAN, ZombifiedHumanEntityRenderer::new);
+        EntityRendererRegistry.register(ZombifiedHumanHuskEntity.ZOMBIFIED_HUMAN_HUSK, ZombifiedHumanHuskRenderer::new);
+        EntityRendererRegistry.register(ZombifiedHumanDrownedEntity.ZOMBIFIED_HUMAN_DROWNED, ZombifiedHumanDrownedRenderer::new);
     }
 }

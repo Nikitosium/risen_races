@@ -1,6 +1,8 @@
 package hik1tka.risen_races.register;
 
 import hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity;
+import hik1tka.risen_races.util.ZombieVariant;
+import hik1tka.risen_races.util.ZombieVariantHelper;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.entity.mob.ZombieEntity;
@@ -12,15 +14,20 @@ import net.minecraft.item.Items;
  *  - ховає ZOMBIE_SPAWN_EGG з креативної вкладки
  *  - будь-який ТОЧНО ZombieEntity (не Husk/Drowned/наш власний зомбі -
  *    getClass() != ZombieEntity.class відсікає підкласи), що з'являється у
- *    світі - видаляється і замінюється ZombifiedHumanEntity
+ *    світі - видаляється і замінюється відповідним підвидом
+ *    ZombifiedHumanEntity (звичайний/кадавр/утопець - за біомом спавну,
+ *    див. ZombieVariantHelper.resolveVariant()).
  *
  * rollRandomSpawnData() викликається тут ЯВНО - ENTITY_LOAD не проходить
  * через initialize() (той шлях спрацьовує лише для мобспавнера/природного
  * спавну напряму), тому без явного виклику заміщені зомбі лишались би з
  * дефолтними значеннями.
  *
- * Кадаврів (Husk) і утопців (Drowned) це поки НЕ чіпає - вони наступний крок
- * (обговорювали окремо).
+ * Дикого ванільного Husk/Drowned це не чіпає навмисно - getClass() !=
+ * ZombieEntity.class відсікає їх так само, як і наш власний зомбі: якщо
+ * колись знадобиться заміняти й дикого Husk/Drowned з ваніли - це окремий
+ * крок (наразі за задумом всі варіанти нашого зомбі народжуються ЛИШЕ
+ * через конвертацію звичайного ZombieEntity, за біомом).
  */
 public class ModZombieReplacement {
 
@@ -33,7 +40,8 @@ public class ModZombieReplacement {
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
             if (entity.getClass() != ZombieEntity.class) return;
 
-            ZombifiedHumanEntity zombie = ZombifiedHumanEntity.ZOMBIFIED_HUMAN.create(world);
+            ZombieVariant variant = ZombieVariantHelper.resolveVariant(world, entity);
+            ZombifiedHumanEntity zombie = ZombieVariantHelper.create(world, variant);
             if (zombie == null) return;
 
             zombie.refreshPositionAndAngles(entity.getX(), entity.getY(), entity.getZ(),

@@ -148,10 +148,14 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
     }
 
     /**
-     * Замість звичайної смерті від зомбі-подібного нападника - конвертація
-     * в ZombifiedHumanEntity зі збереженням статі/скіна/імені/віку/професії
-     * в MD_NPC_Memory (щоб потім можна було відновити цю саму людину при
-     * лікуванні - див. ZombifiedHumanEntity#tryCure()).
+     * Замість звичайної смерті від зомбі-подібного нападника - шанс
+     * конвертації в підвид ZombifiedHumanEntity (звичайний/кадавр/утопець -
+     * залежно від біома, див. ZombieVariantHelper) зі збереженням статі/
+     * скіна/імені/віку/професії в MD_NPC_Memory.
+     *
+     * Сам шанс перетворення (а не гарантована смерть) залежить від
+     * складності світу - як зараження жителя ваніллю: легка 0% (завжди
+     * звичайна смерть), середня 50%, складна 100% (завжди перетворення).
      */
     @Override
     public boolean damage(DamageSource source, float amount) {
@@ -159,15 +163,36 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
                 && amount >= this.getHealth()
                 && source.getAttacker() instanceof net.minecraft.entity.mob.ZombieEntity
                 && this.getWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
-            tryZombify(serverWorld);
-            return true; // "пошкодження оброблено" - справжньої смерті не відбувається
+
+            float chance = getZombificationChance(serverWorld.getDifficulty());
+            if (this.random.nextFloat() < chance) {
+                tryZombify(serverWorld);
+                return true; // "пошкодження оброблено" - справжньої смерті не відбувається
+            }
+            // не пощастило - людина помирає як зазвичай, падаємо в super.damage() нижче
         }
         return super.damage(source, amount);
     }
 
+    /**
+     * Шанс перетворення на зомбі при смертельному ударі зомбі - як у
+     * ванільному зараженні жителів, прив'язано до Difficulty світу (НЕ до
+     * регіональної local difficulty, яка ще й від відстані/часу залежить -
+     * тут навмисно проста прив'язка тільки до глобального рівня складності).
+     */
+    private static float getZombificationChance(net.minecraft.world.Difficulty difficulty) {
+        return switch (difficulty) {
+            case PEACEFUL, EASY -> 0.0f;
+            case NORMAL -> 0.5f;
+            case HARD -> 1.0f;
+        };
+    }
+
     private void tryZombify(net.minecraft.server.world.ServerWorld world) {
+        hik1tka.risen_races.util.ZombieVariant variant =
+                hik1tka.risen_races.util.ZombieVariantHelper.resolveVariant(world, this);
         hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity zombie =
-                hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity.ZOMBIFIED_HUMAN.create(world);
+                hik1tka.risen_races.util.ZombieVariantHelper.create(world, variant);
         if (zombie == null) return;
 
         zombie.refreshPositionAndAngles(this.getX(), this.getY(), this.getZ(), this.getYaw(), this.getPitch());
