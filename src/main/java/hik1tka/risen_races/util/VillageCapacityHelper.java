@@ -145,19 +145,21 @@ public class VillageCapacityHelper {
         if (alreadyShown != null && alreadyShown == day) return;
         lastAnnouncedDay.put(world, day);
 
-        String settlement = getSettlementName();
+        Text settlement = getSettlementName();
         Text message = Text.translatable("risen_races.overpopulation", settlement, shortage, settlement);
         for (ServerPlayerEntity player : world.getPlayers()) {
             player.sendMessage(message, false);
         }
     }
 
-    private static String getSettlementName() {
+    private static Text getSettlementName() {
         // TODO: якщо мод VillageBounds встановлено - брати справжню назву типу
-        // поселення (село/місто/королівство) з його API. Приклад майбутнього виду:
+        // поселення (село/місто/королівство) з його API, скоріш за все теж як
+        // Text (або обгорнути String в Text.literal(...), якщо API повертає
+        // сирий рядок). Приклад майбутнього виду:
         // if (FabricLoader.getInstance().isModLoaded("villagebounds")) {
         //     return VillageBoundsApi.getSettlementType(world, pos); // точна назва методу невідома
         // }
-        return "село";
+        return Text.translatable("risen_races.settlement.default");
     }
 }
