@@ -45,6 +45,7 @@ public class AcquireProfessionGoal extends Goal {
             return false;
         }
         if (!"none".equals(entity.getProfession())) return false;
+        if (entity.isBaby()) return false;
         if (!(entity.getWorld() instanceof ServerWorld world)) return false;
 
         List<ProfessionDefinition> professions = entity.getAvailableProfessions();
