@@ -113,6 +113,13 @@ public class RisenPiglinEntity extends HumanoidEntity implements IGenderedEntity
         return this.rescuerUuid;
     }
 
+    @Override
+    public float getSoundPitch() {
+        float base = super.getSoundPitch(); // тут вже врахований дитячий пітч з HumanoidEntity
+        if (this.isBaby()) return base;      // дитячий і так вищий - гендер зверху не накладаємо
+        return this.isFemale() ? base * 1.15f : base * 0.9f;
+    }
+
     /**
      * Хто йде "попереду" в караванному ланцюжку (паровозик, як у лам):
      * якщо серед уже врятованих піглінів того самого гравця поблизу є хтось,

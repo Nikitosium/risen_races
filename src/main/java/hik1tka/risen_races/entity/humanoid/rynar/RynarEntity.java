@@ -76,6 +76,13 @@ public class RynarEntity extends HumanoidEntity implements IGenderedEntity {
     }
 
     @Override
+    public float getSoundPitch() {
+        float base = super.getSoundPitch(); // тут вже врахований дитячий пітч з HumanoidEntity
+        if (this.isBaby()) return base;      // дитячий і так вищий - гендер зверху не накладаємо
+        return this.isFemale() ? base * 1.15f : base * 0.9f;
+    }
+
+    @Override
     public List<ProfessionDefinition> getAvailableProfessions() {
         return List.of(
                 new ProfessionDefinition("farmer", net.minecraft.world.poi.PointOfInterestTypes.FARMER, 48),
