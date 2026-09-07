@@ -5,6 +5,7 @@ import hik1tka.risen_races.register.ModEntity;
 import hik1tka.risen_races.register.ModItem;
 import hik1tka.risen_races.register.ModSounds;
 import hik1tka.risen_races.register.ModVillagerReplacement;
+import hik1tka.risen_races.register.ModZombieReplacement;
 import net.fabricmc.api.ModInitializer;
 
 import net.minecraft.util.Identifier;
@@ -27,6 +28,7 @@ public class RisenRaces implements ModInitializer {
         ModEntity.registerModEntity();
         ModSounds.registerSounds();
         ModVillagerReplacement.register();
+        ModZombieReplacement.register();
     }
 
     public static Identifier id(String path) {

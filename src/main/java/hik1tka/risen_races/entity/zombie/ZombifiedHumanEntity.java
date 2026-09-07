@@ -61,6 +61,21 @@ public class ZombifiedHumanEntity extends ZombieEntity {
     @Nullable
     private NbtCompound npcMemory;
 
+    /**
+     * Природний спавн (мобспавнер, заміна ванільного зомбі і т.п.) завжди
+     * проходить через initialize() - на відміну від tryZombify() в
+     * HumanEntity, який спавнить вручну через world.spawnEntity() і НЕ
+     * викликає initialize(). Тому без цього оверрайду дикий зомбі лишався б
+     * назавжди isFemale=false/profession="none" - без генератора значень.
+     */
+    @Override
+    public net.minecraft.entity.EntityData initialize(net.minecraft.world.ServerWorldAccess world,
+                                                      net.minecraft.world.LocalDifficulty difficulty, net.minecraft.entity.SpawnReason spawnReason,
+                                                      @Nullable net.minecraft.entity.EntityData entityData, @Nullable NbtCompound entityNbt) {
+        this.rollRandomSpawnData();
+        return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
+    }
+
     public static DefaultAttributeContainer.Builder createZombifiedHumanAttributes() {
         return ZombieEntity.createZombieAttributes();
     }

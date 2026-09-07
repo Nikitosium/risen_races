@@ -21,7 +21,7 @@ import net.minecraft.util.Identifier;
 public class ZombifiedHumanEntityRenderer extends MobEntityRenderer<ZombifiedHumanEntity, ZombieEntityModel<ZombifiedHumanEntity>> {
 
     private static final Identifier TEXTURE =
-            new Identifier("risen_races", "textures/entity/zombie/zombified_human.png");
+            new Identifier("minecraft", "textures/entity/zombie/zombie.png");
 
     private static final float FEMALE_ARM_SCALE = 0.82f;
     private static final float MALE_ARM_SCALE = 1.0f;
@@ -32,7 +32,7 @@ public class ZombifiedHumanEntityRenderer extends MobEntityRenderer<ZombifiedHum
 
     @Override
     public void render(ZombifiedHumanEntity entity, float yaw, float tickDelta, MatrixStack matrices,
-                        VertexConsumerProvider vertexConsumers, int light) {
+                       VertexConsumerProvider vertexConsumers, int light) {
         BipedModelAccessor accessor = (BipedModelAccessor) this.getModel();
         ModelPart leftArm = accessor.getLeftArm();
         ModelPart rightArm = accessor.getRightArm();
