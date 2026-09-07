@@ -1,11 +1,6 @@
 package hik1tka.risen_races;
 
-import hik1tka.risen_races.register.ModEffect;
-import hik1tka.risen_races.register.ModEntity;
-import hik1tka.risen_races.register.ModItem;
-import hik1tka.risen_races.register.ModSounds;
-import hik1tka.risen_races.register.ModVillagerReplacement;
-import hik1tka.risen_races.register.ModZombieReplacement;
+import hik1tka.risen_races.register.*;
 import net.fabricmc.api.ModInitializer;
 
 import net.minecraft.util.Identifier;
@@ -29,6 +24,8 @@ public class RisenRaces implements ModInitializer {
         ModSounds.registerSounds();
         ModVillagerReplacement.register();
         ModZombieReplacement.register();
+        ModDrownedReplacement.register();
+        ModHuskReplacement.register();
     }
 
     public static Identifier id(String path) {
