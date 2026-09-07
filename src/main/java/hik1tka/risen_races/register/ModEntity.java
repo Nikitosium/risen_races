@@ -4,6 +4,7 @@ import hik1tka.risen_races.RisenRaces;
 import hik1tka.risen_races.entity.humanoid.human.HumanEntity;
 import hik1tka.risen_races.entity.humanoid.risen_piglin.RisenPiglinEntity;
 import hik1tka.risen_races.entity.humanoid.rynar.RynarEntity;
+import hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 
 public class ModEntity {
@@ -14,5 +15,6 @@ public class ModEntity {
         FabricDefaultAttributeRegistry.register(HumanEntity.HUMAN, HumanEntity.createHumanAttributes());
         FabricDefaultAttributeRegistry.register(RisenPiglinEntity.RISEN_PIGLIN, RisenPiglinEntity.createRisenPiglinAttributes());
         FabricDefaultAttributeRegistry.register(RynarEntity.RYNAR, RynarEntity.createRynarAttributes());
+        FabricDefaultAttributeRegistry.register(ZombifiedHumanEntity.ZOMBIFIED_HUMAN, ZombifiedHumanEntity.createZombifiedHumanAttributes());
     }
 }

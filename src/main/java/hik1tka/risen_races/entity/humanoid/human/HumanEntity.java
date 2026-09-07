@@ -147,6 +147,45 @@ public class HumanEntity extends HumanoidEntity implements IGenderedEntity {
         this.dataTracker.set(SKIN_ID, id);
     }
 
+    /**
+     * Замість звичайної смерті від зомбі-подібного нападника - конвертація
+     * в ZombifiedHumanEntity зі збереженням статі/скіна/імені/віку/професії
+     * в MD_NPC_Memory (щоб потім можна було відновити цю саму людину при
+     * лікуванні - див. ZombifiedHumanEntity#tryCure()).
+     */
+    @Override
+    public boolean damage(DamageSource source, float amount) {
+        if (!this.getWorld().isClient
+                && amount >= this.getHealth()
+                && source.getAttacker() instanceof net.minecraft.entity.mob.ZombieEntity
+                && this.getWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
+            tryZombify(serverWorld);
+            return true; // "пошкодження оброблено" - справжньої смерті не відбувається
+        }
+        return super.damage(source, amount);
+    }
+
+    private void tryZombify(net.minecraft.server.world.ServerWorld world) {
+        hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity zombie =
+                hik1tka.risen_races.entity.zombie.ZombifiedHumanEntity.ZOMBIFIED_HUMAN.create(world);
+        if (zombie == null) return;
+
+        zombie.refreshPositionAndAngles(this.getX(), this.getY(), this.getZ(), this.getYaw(), this.getPitch());
+        zombie.setFemale(this.isFemale());
+        zombie.setProfession(this.getProfession());
+
+        net.minecraft.nbt.NbtCompound memory = new net.minecraft.nbt.NbtCompound();
+        memory.putBoolean("WasFemale", this.isFemale());
+        memory.putInt("SkinID", this.getSkinId());
+        memory.putString("Profession", this.getProfession());
+        memory.putBoolean("IsBaby", this.isBaby());
+        memory.putString("StoredName", this.hasCustomName() ? this.getCustomName().getString() : "");
+        zombie.setNpcMemory(memory);
+
+        world.spawnEntity(zombie);
+        this.discard();
+    }
+
     @Override
     public java.util.List<hik1tka.risen_races.entity.humanoid.data.ProfessionDefinition> getAvailableProfessions() {
         return java.util.List.of(
